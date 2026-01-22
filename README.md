@@ -115,7 +115,7 @@ opencode-tools/
 - Limited to AI agent workflows only
 - ❌ Not suitable for production use
 
-**✅ Solution**: Docker Engine API (v1.47+)
+**✅ Solution**: Docker Engine API (v1.47+) (research [\`docker-engine-api-research.md\`](.research/docker-engine-api-research.md))
 - Stable, mature, production-ready
 - Complete lifecycle operations (create, start, stop, remove, kill, restart)
 - Full resource limiting (memory, CPU, PIDs, block I/O)
@@ -129,7 +129,7 @@ opencode-tools/
 
 ### Concurrency Model
 
-**Optimistic Locking** (implemented in `concurrency-prototype.ts`)
+**Optimistic Locking** (implemented in [\`concurrency-prototype.ts\`](.research/concurrency-prototype.ts))
 
 | Mode | Success Rate | Recommendation |
 |------|--------------|----------------|
@@ -143,14 +143,14 @@ opencode-tools/
 
 ### State Persistence Architecture
 
-**4-Layer Persistence** (designed in `state-persistence-benchmark.md`)
+**4-Layer Persistence** (designed in [\`state-persistence-benchmark.md\`](.research/state-persistence-benchmark.md))
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  Layer 1: state.json                        │  Current task state
-│  Layer 2: JSONL logs                        │  Immutable audit trail
-│  Layer 3: decisions.md                       │  Agent decisions
-│  Layer 4: checkpoints                        │  Filesystem snapshots
+│  Layer 1: state.json                            │  Current task state
+│  Layer 2: JSONL logs                            │  Immutable audit trail
+│  Layer 3: decisions.md                          │  Agent decisions
+│  Layer 4: checkpoints                           │  Filesystem snapshots
 └─────────────────────────────────────────────────┘
 ```
 
@@ -163,7 +163,7 @@ opencode-tools/
 
 ### JSONL Logging Performance
 
-**Benchmarks** (1M entries):
+**Benchmarks** (1M entries): (research [\`jsonl-benchmark.md\`](.research/jsonl-benchmark.md))
 
 | Operation | Ops/sec | Status |
 |-----------|----------|--------|
@@ -180,7 +180,7 @@ opencode-tools/
 
 ### Database Strategy
 
-**SQLite for MVP** (tested with 100K+ tasks)
+**SQLite for MVP** (tested with 100K+ tasks) (research [\`sqlite-postgresql-comparison.md\`](.research/sqlite-postgresql-comparison.md))
 
 | Operation | Ops/sec | Status |
 |-----------|----------|--------|
