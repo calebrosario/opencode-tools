@@ -44,27 +44,27 @@ This document provides state machine diagrams for the major systems in the Docke
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                          Task Lifecycle State Machine                       │
+│                          Task Lifecycle State Machine                           │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-                    ┌──────────────┐
-                    │   pending    │
-                    └──────────────┘
-                           │
-                           │
-                           │
-              ┌─────────────┐     ┌──────────────┐
-              │ in_progress │     │    paused      │
-              └─────────────┘     └──────────────┘
-                           │                           │
-                           │                           │
-                  ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-                  │  completed   │     │    failed      │     │   archived    │
-                  └─────────────┘     └──────────────┘     └──────────────┘
-                           │                           │
-                           │                    ┌──────────┐
-                           │                    │   pending  │
-                           └────────────────────┘
+                              ┌──────────────┐
+                              │   pending    │
+                              └──────────────┘
+                                     │
+                                     │
+                                     │
+                              ┌─────────────┐     ┌──────────────┐
+                              │ in_progress │     │    paused    │
+                              └───────┬─────┘     └──────────────┘
+                 ┌────────────────────+────────────────────┐
+                 │                    |                    |
+          ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+          │  completed  │     │     failed   │     │   pending    │
+          └─────────────┘     └──────────────┘     └──────────────┘
+                 │               
+          ┌─────────────┐                    
+          │   archived  │
+          └─────────────┘
 ```
 
 **Decision Points**:
@@ -106,18 +106,18 @@ This document provides state machine diagrams for the major systems in the Docke
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        Container Lifecycle State Machine              │
+│                        Container Lifecycle State Machine                        │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-                    ┌──────────────┐
-                    │   created     │
-                    └───┬─────────┘
+                ┌──────────────┐
+                │   created    │
+                └───────┬──────┘
                         │
                         │
                ┌──────────────┐     ┌──────────────┐
-               │    running   │     │   stopped     │
+               │    running   │     │   stopped    │
                └──────────────┘     └──────────────┘
-                        │                        │
+                        │                  │
                ┌──────────────┐     ┌──────────────┐
                │   exited     │     │  removing    │
                └──────────────┘     └──────────────┘
@@ -167,12 +167,12 @@ This document provides state machine diagrams for the major systems in the Docke
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                      Agent Session Lifecycle State Machine                │
+│                      Agent Session Lifecycle State Machine                      │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
                     ┌──────────────┐
                     │  attaching   │
-                    └───┬─────────┘
+                    └───┬──────────┘
                         │
                         │
                ┌──────────────┐
@@ -181,14 +181,14 @@ This document provides state machine diagrams for the major systems in the Docke
                         │
                         │
                     ┌──────────────┐
-               │  detaching   │
-               └───┬─────────┘
+                    │  detaching   │
+                    └───┬──────────┘
                         │
                         │
                ┌──────────────┐
                │   detached   │
                └──────────────┘
-                        │
+
 ```
 
 **Decision Points**:
@@ -227,32 +227,30 @@ This document provides state machine diagrams for the major systems in the Docke
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    Hook System Event Flow State Machine                 │
+│                    Hook System Event Flow State Machine                         │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-                    ┌──────────────┐
+                    ┌─────────────┐
                     │   idle      │
                     └───┬─────────┘
                         │
                         │
                ┌──────────────┐
                │  emitting    │
-               └──────────────┘
+               └────────┬─────┘
                         │
                         │
                         │
-               ┌──────────────┐
-               │ processing   │
-               └───┬──────────┘
-                        │   _hooks   │
-               └───┬─────────┘
-                        │         │
-                        │              ┌──────────────┐     ┌──────────────┐
-                        │              │   completed   │     │  error_handling│
-                        │              └──────────────┘     └──────────────┘
-                        │
-                        │
-               └──────────────┘
+               ┌────────────────────┐
+               │  processing_hooks  │
+               └──────┬──────────┬──┘
+                      │          │
+                      |          |
+                      │          │
+│         ┌──────────────┐     ┌──────────────┐
+│         │   completed  │     │error_handling│
+          └──────────────┘     └──────────────┘
+
 ```
 
 **Event Types**:
@@ -297,25 +295,25 @@ This document provides state machine diagrams for the major systems in the Docke
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                   Integration Flow State Machine                        │
+│                   Integration Flow State Machine                                │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-                OpenCode Request
-                     │
-                     ▼
-                ┌─────────────────────────────┐
+                          OpenCode Request
+                                  │
+                                  ▼
+                ┌────────────────────────────────────┐
                 │   Hook Processing (oh-my-opencode) │
-                └─────────────────────────────┘
-                     │
-                ┌─────────────────────────────┐
+                └────────────────────────────────────┘
+                                  │
+                ┌───────────────────────────────┐
                 │   MCP Server Invocation       │
-                └─────────────────────────────┘
-                     │
-                ┌─────────────────────────────┐
+                └───────────────────────────────┘
+                                  │
+                ┌───────────────────────────────┐
                 │   Docker Engine API Operation │
-                └─────────────────────────────┘
-                     │
-                Result to OpenCode
+                └───────────────────────────────┘
+                                  │
+                          Result to OpenCode
 ```
 
 **Integration Layers**:
@@ -366,7 +364,7 @@ This document provides state machine diagrams for the major systems in the Docke
 **Health Checks**:
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    Combined System State Machine                         │
+│                    Combined System State Machine                                │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
                      ┌──────────────┐
@@ -375,7 +373,7 @@ This document provides state machine diagrams for the major systems in the Docke
                           │
                           │
                     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-                    │   active    │     │  degraded  │     │ maintenance  │
+                    │   active     │     │  degraded    │     │ maintenance  │
                     └──────────────┘     └──────────────┘     └──────────────┘
 ```
 

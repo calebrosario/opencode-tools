@@ -361,7 +361,7 @@ interface HookSystem {
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    OpenCode + oh-my-opencode                    │
+│                    OpenCode + oh-my-opencode            │
 └──────────────────────────────┬──────────────────────────┘
                                │
                                ├─ Hook System (EventEmitter)
@@ -381,12 +381,12 @@ interface HookSystem {
                                   - Exec operations
                                   - Log streaming
                                   - State management
-                               │
-                               ▼
-                    ┌────────────────────┐
-                    │  Docker Engine API  │
-                    │  (Dockerode SDK)   │
-                    └────────────────────┘
+                                             │
+                                             ▼
+                                 ┌────────────────────┐
+                                 │  Docker Engine API │
+                                 │  (Dockerode SDK)   │
+                                 └────────────────────┘
 ```
 
 **Implementation Status**: ✅ **COMPLETED**

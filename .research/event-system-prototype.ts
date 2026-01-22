@@ -163,7 +163,7 @@ export class HookSystem extends EventEmitter {
         }))
       );
 
-      const parallelResults = await Promise.all(promises);
+      const parallelResults: any = await Promise.all(promises);
       results.push(...parallelResults);
     } else {
       // Sequential execution (preserves order, default for hooks)

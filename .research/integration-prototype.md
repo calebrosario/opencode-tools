@@ -512,13 +512,13 @@ class DockerErrorHandler {
 #### Complete Error Handling Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────────────┐
 │                    User Request (OpenCode)                │
-└──────────────────────────────┬──────────────────────────────┘
+└──────────────────────────────┬────────────────────────────┘
                                │
                                ▼
                     ┌────────────────────┐
-                    │  Hook System     │
+                    │    Hook System     │
                     └────────────────────┘
                                │
                                │ error?
@@ -526,7 +526,7 @@ class DockerErrorHandler {
                                │ No
                                ▼
                     ┌────────────────────┐
-                    │  MCP Tools       │
+                    │    MCP Tools       │
                     └────────────────────┘
                                │
                                │ error?
@@ -534,7 +534,7 @@ class DockerErrorHandler {
                                │ No
                                ▼
                     ┌────────────────────┐
-                    │  Docker Engine    │
+                    │   Docker Engine    │
                     └────────────────────┘
                                │
                                │ error?
@@ -542,7 +542,7 @@ class DockerErrorHandler {
                                │ No
                                ▼
                     ┌────────────────────┐
-                    │  Return Result   │
+                    │    Return Result   │
                     └────────────────────┘
 ```
 
@@ -563,33 +563,33 @@ class DockerErrorHandler {
 ┌─────────────────────────────────────────────────────────────────┐
 │                    OpenCode + oh-my-opencode                    │
 │                                                                 │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │              Task Manager MCP Server               │ │
-│  └────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────┐         │
+│  │              Task Manager MCP Server               │         │
+│  └────────────────────────────────────────────────────┘         │
 │                              │                                  │
 │                              ├─ Event System (EventEmitter)     │
-│                              │  - before/after hooks             │
-│                              │  - metrics collection              │
+│                              │  - before/after hooks            │
+│                              │  - metrics collection            │
 │                              │  - timeout support               │
-│                              │                                 │
-│                              ├─ oh-my-opencode Hooks           │
+│                              │                                  │
+│                              ├─ oh-my-opencode Hooks            │
 │                              │  - task-lifecycle-manager        │
 │                              │  - git-branching-hooks           │
-│                              │  - safety-enforcer                │
-│                              │                                 │
-│                              ├─ Task Registry (SQLite)        │
+│                              │  - safety-enforcer               │
+│                              │                                  │
+│                              ├─ Task Registry (SQLite)          │
 │                              │  - tasks table                   │
-│                              │  - agent_sessions table           │
-│                              │  - checkpoints table              │
-│                              │                                 │
-│                              └─ Docker Engine API (Dockerode) │
+│                              │  - agent_sessions table          │
+│                              │  - checkpoints table             │
+│                              │                                  │
+│                              └─ Docker Engine API (Dockerode)   │
 │                                                                 │
 └──────────────────────────────┬──────────────────────────────────┘
-                                │
-                                ▼
+                               │
+                               ▼
                      ┌────────────────────┐
                      │  Docker Desktop    │
-                     │  (Engine API)       │
+                     │  (Engine API)      │
                      └────────────────────┘
 ```
 

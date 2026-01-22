@@ -428,25 +428,26 @@ Comprehensive review of 15 proposed architecture improvements for Docker Sandbox
 ## Dependency Graph
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│         v2.0+ Foundation Architecture              │
-└────────────────────────┬────────────────────────────┘
-                     │
-    ┌────────────────┴────────────────┐
-    │   Event-Driven Architecture   │
-    │   (Improvement 1)          │
-    └───────────────────────────────┘
-                     │
-         ┌─────────┬─────────┬─────────┬─────────┐
-         │         │         │         │         │
-         ▼         ▼         ▼         ▼         ▼
-    ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐
-    │    │  │    │  │    │  │    │  │
- Real-  Task  Task  Task   Docker  Security  Task    Plugin
-    │Time  │Dependency│Version│Desktop│Policy   │Templates│Lazy    │System
-    │Mon   │Graph  │Control│Compat. │Engine   │         │Creation
-    │       │       │        │        │       │         │
-   (5)   (6)   (9)   (10)   (11)   (12)     (13)    (14)   (15)
+                         ┌─────────────────────────────────────────────────────┐
+                         │         v2.0+ Foundation Architecture               │
+                         └────────────────────────┬────────────────────────────┘
+                                                  │
+                                 ┌────────────────┴────────────────┐
+                                 │     Event-Driven Architecture   │
+                                 │        (Improvement 1)          │
+                                 └─────────────────────────────────┘
+                                                  │
+         ┌───────────┬────────────┬──────────┬─────────┬───────────────┬────────────┬───────────┐
+         │           │            │          │         │               |            |           |
+         ▼           ▼            ▼          ▼         ▼               ▼            ▼           ▼
+    ┌─────────┐ ┌──────────┐  ┌───────┐  ┌────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
+    │         │ │          │  │       │  │        │  │         |  |         |  |         |  |         |
+    |Task     | |Task      |  |Task   |  |Docker  |  |Security |  | Task    |  |Lazy     |  |Plugin   |
+    │Real-Time| │Dependency│  |Version│  |Desktop │  |Policy   │  |Templates│  |Container│  |System   | 
+    │Mon      | │Graph     │  |Control│  |Compat. │  |Engine   │  |         │  |Creation |  |         |
+    │         | │          │  │       │  │        │  |         |  |         |  |         |  |         |
+    └─────────┘ └──────────┘  └───────┘  └────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘
+        (5)         (6)         (9)         (10)        (11)          (12)         (13)         (15)
 
 (Improvement numbers correspond to list above)
 
