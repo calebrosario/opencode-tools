@@ -33,6 +33,10 @@ This document provides a comprehensive register of risks for the Docker Task Man
 | R13 | Architecture | Foundation complexity | Low | Medium | 🟠 | Architect | Active |
 | R14 | Architecture | Technology debt accumulation | Medium | Medium | 🟠 | Tech Lead | Active |
 | R15 | Architecture | Skill shortage (Event-driven architecture) | Medium | High | 🟡 | Engineering Manager | Active |
+| R16 | Planning | Planning Paralysis | Medium | Medium | 🟠 | Project Manager | Active |
+| R17 | Planning | Resource Unavailability | Medium | High | 🟡 | Project Manager | Active |
+| R18 | Planning | Scope Creep (Planning) | High | Medium | 🟠 | Tech Lead | Active |
+| R19 | Infrastructure | Environment Inconsistency | Medium | Medium | 🟠 | DevOps Engineer | Active |
 
 **Severity Legend**:
 - 🔴 Critical: System-breaking or security-critical
@@ -443,6 +447,107 @@ This document provides a comprehensive register of risks for the Docker Task Man
 
 ---
 
+
+---
+
+### R16: Planning Paralysis
+
+**Description**: Team spends excessive time debating implementation details during Phase 0 workshops, delaying decisions
+
+**Probability**: Medium
+**Impact**: Medium (delay in starting Phase 1)
+**Severity**: 🟠 Medium
+**Owner**: Project Manager
+
+**Triggers**:
+- Lack of clear decision-making authority
+- Endless "what-if" scenarios
+- Perfectionism in planning
+
+**Mitigation**:
+1. Enforce strict timeboxing for agenda items
+2. Use "Disagree and Commit" principle
+3. Park off-topic discussions in "Parking Lot" list
+4. Empower Tech Lead to make tie-breaking decisions
+5. Focus on "Good Enough for MVP"
+
+**Status**: Active
+
+---
+
+### R17: Resource Unavailability
+
+**Description**: Key team members (Architect, Lead Dev) unavailable for full participation in planning workshops
+
+**Probability**: Medium
+**Impact**: High (incomplete planning, lack of alignment)
+**Severity**: 🟡 High
+**Owner**: Project Manager
+
+**Triggers**:
+- Concurrent project demands
+- Sick leave / PTO
+- Emergency production issues elsewhere
+
+**Mitigation**:
+1. Schedule workshops 2 weeks in advance
+2. Secure management approval for 100% allocation
+3. Record all sessions for async review
+4. Require deputies for key roles
+5. Reschedule critical sessions if quorum not met
+
+**Status**: Active
+
+---
+
+### R18: Scope Creep (Planning)
+
+**Description**: New features added during planning workshops expand scope beyond original 49 items
+
+**Probability**: High
+**Impact**: Medium (timeline extension)
+**Severity**: 🟠 Medium
+**Owner**: Tech Lead
+
+**Triggers**:
+- "While we're at it" suggestions
+- Stakeholder pressure for more features
+- discovery of new requirements
+
+**Mitigation**:
+1. Strict "Phase 2+" bucket for new ideas
+2. Require trade-off (remove item to add item)
+3. Focus strictly on Phase 1 critical edge cases first
+4. Maintain "Icebox" for future consideration
+5. Validate against MVP goals
+
+**Status**: Active
+
+---
+
+### R19: Environment Inconsistency
+
+**Description**: Infrastructure setup scripts fail on different developer machines (OS differences)
+
+**Probability**: Medium
+**Impact**: Medium (onboarding delay)
+**Severity**: 🟠 Medium
+**Owner**: DevOps Engineer
+
+**Triggers**:
+- Windows vs macOS vs Linux differences
+- Docker Desktop version mismatches
+- Node.js version conflicts
+- Port conflicts
+
+**Mitigation**:
+1. Use Dev Containers (VS Code) for standardization
+2. Test setup scripts on all 3 major OSs
+3. Provide "nuke and pave" reset scripts
+4. Enforce strict version checks in setup scripts
+5. Use cloud-based dev environment fallback (Codespaces)
+
+**Status**: Active
 ## Risk Monitoring
 
 ### Key Metrics
