@@ -1,5 +1,5 @@
 // MCP Server - Phase 1: Critical Edge Cases
-// Enhanced server with crash recovery capabilities and tool registration
+// Enhanced server with crash recovery capabilities
 
 import { createServer, Server as HttpServer, IncomingMessage, ServerResponse } from 'http';
 import { logger } from '../util/logger';
@@ -25,46 +25,8 @@ export interface MCPResponse {
   timestamp: Date;
 }
 
-export interface MCPTool {
-  name: string;
-  description: string;
-  execute: (params: Record<string, any>) => Promise<any>;
-}
-
-export const TOOL_DEFINITIONS: MCPTool[] = [
-  {
-    name: 'create_task_sandbox',
-    description: 'Create a new task sandbox with Docker container',
-    execute: async (params: Record<string, any>) => {
-      return { status: 'ok', taskId: params.taskId || 'default', message: 'Task sandbox created' };
-    }
-  },
-  {
-    name: 'attach_agent_to_task',
-    description: 'Attach an AI agent to an existing task',
-    execute: async (params: Record<string, any>) => {
-      return { status: 'ok', agentId: params.agentId || 'default', message: 'Agent attached' };
-    }
-  },
-  {
-    name: 'detach_agent_from_task',
-    description: 'Detach an agent from a task',
-    execute: async (params: Record<string, any>) => {
-      return { status: 'ok', message: 'Agent detached' };
-    }
-  },
-  {
-    name: 'execute_in_task',
-    description: 'Execute a command in a task container',
-    execute: async (params: Record<string, any>) => {
-      const command = params.command || 'echo hello';
-      return { status: 'ok', output: 'Executed: ' + command, message: 'Command executed' };
-    }
-  }
-];
-
 export interface ServerState {
-  tools: Record<string, MCPTool>;
+  tools: Record<string, any>;
   activeRequests: Map<string, MCPRequest>;
   startTime: Date;
   lastHealthCheck: Date;
@@ -95,32 +57,20 @@ export class MCPServerEnhanced {
     return MCPServerEnhanced.instance;
   }
 
-  public registerTool(tool: MCPTool): void {
-    this.state.tools[tool.name] = tool;
-    logger.info('Tool registered', { tool: tool.name });
-  }
-
-  public getTool(name: string): MCPTool | undefined {
-    return this.state.tools[name];
-  }
-
-  public getAllTools(): Record<string, MCPTool> {
-    return this.state.tools;
-  }
-
   public async initialize(): Promise<void> {
     try {
-      logger.info('Starting Enhanced MCP Server with crash recovery and tool registration...');
+      logger.info('Starting Enhanced MCP Server with crash recovery...');
       
+      // Load previous state for crash detection
       await this.loadState();
       
-      TOOL_DEFINITIONS.forEach(tool => this.registerTool(tool));
-      
+      // Create HTTP server
       this.server = createServer(this.handleRequest.bind(this));
       
+      // Start health monitoring
       this.startHealthMonitoring();
       
-      logger.info('Enhanced MCP Server initialized with ' + TOOL_DEFINITIONS.length + ' tools');
+      logger.info('✅ Enhanced MCP Server initialized');
     } catch (error) {
       logger.error('Failed to initialize Enhanced MCP Server', { error });
       throw error;
@@ -134,7 +84,7 @@ export class MCPServerEnhanced {
 
     return new Promise<void>((resolve, reject) => {
       this.server!.listen(MCP_PORT, MCP_HOST, () => {
-        logger.info('Enhanced MCP Server started', { port: MCP_PORT, tools: Object.keys(this.state.tools).length });
+        logger.info('✅ Enhanced MCP Server started', { port: MCP_PORT });
         resolve();
       });
 
@@ -157,7 +107,7 @@ export class MCPServerEnhanced {
     if (this.server) {
       return new Promise<void>((resolve) => {
         this.server!.close(() => {
-          logger.info('Enhanced MCP Server stopped');
+          logger.info('✅ Enhanced MCP Server stopped');
           resolve();
         });
       });
@@ -215,51 +165,14 @@ export class MCPServerEnhanced {
         reject(new OpenCodeError('REQUEST_TIMEOUT', 'Request timed out'));
       }, MCP_REQUEST_TIMEOUT_MS);
 
-      setTimeout(async () => {
+      // Simple mock response for now
+      setTimeout(() => {
         clearTimeout(timeout);
-        
-        if (request.method === 'tools/list') {
-          resolve({
-            id: request.id,
-            result: {
-              tools: Object.values(this.state.tools).map(tool => ({
-                name: tool.name,
-                description: tool.description,
-              })),
-            },
-            timestamp: new Date(),
-          });
-        } else {
-          const tool = this.getTool(request.method);
-          if (tool) {
-            try {
-              const result = await tool.execute(request.params || {});
-              resolve({
-                id: request.id,
-                result,
-                timestamp: new Date(),
-              });
-            } catch (error) {
-              resolve({
-                id: request.id,
-                error: {
-                  code: 500,
-                  message: error instanceof Error ? error.message : String(error),
-                },
-                timestamp: new Date(),
-              });
-            }
-          } else {
-            resolve({
-              id: request.id,
-              error: {
-                code: 404,
-                message: 'Tool not found: ' + request.method,
-              },
-              timestamp: new Date(),
-            });
-          }
-        }
+        resolve({
+          id: request.id,
+          result: { status: 'ok', method: request.method },
+          timestamp: new Date(),
+        });
       }, 100);
     });
   }
@@ -274,6 +187,7 @@ export class MCPServerEnhanced {
     try {
       this.state.lastHealthCheck = new Date();
       
+      // Check for hanging requests
       const now = Date.now();
       for (const [requestId, request] of this.state.activeRequests) {
         const age = now - request.timestamp.getTime();
@@ -283,6 +197,7 @@ export class MCPServerEnhanced {
         }
       }
       
+      // Save state periodically
       this.saveState().catch(error => {
         logger.warn('Failed to save state during health check', { error });
       });
@@ -303,6 +218,7 @@ export class MCPServerEnhanced {
           activeRequests: new Map(),
         };
         
+        // Detect crash recovery
         if (stateData.crashCount >= 0) {
           this.state.crashCount = stateData.crashCount + 1;
           logger.warn('MCP Server crash recovery detected', {
@@ -331,25 +247,25 @@ export class MCPServerEnhanced {
   }
 
   public async handleCrash(): Promise<void> {
-    logger.error('MCP Server crash detected - initiating recovery');
+    logger.error('🚨 MCP Server crash detected - initiating recovery');
     
     try {
       this.state.crashCount++;
       await this.saveState();
       
+      // Create crash report
       const crashReport = {
         timestamp: new Date(),
         crashCount: this.state.crashCount,
         uptime: Date.now() - this.state.startTime.getTime(),
         activeRequests: Array.from(this.state.activeRequests.entries()),
-        tools: Object.keys(this.state.tools),
         nodeVersion: process.version,
         platform: process.platform,
         memory: process.memoryUsage(),
       };
       
       require('fs').writeFileSync(
-        './logs/crash-report-' + Date.now() + '.json',
+        `./logs/crash-report-${Date.now()}.json`,
         JSON.stringify(crashReport, null, 2)
       );
       
@@ -360,7 +276,7 @@ export class MCPServerEnhanced {
   }
 
   public async restart(): Promise<void> {
-    logger.warn('Restarting MCP Server');
+    logger.warn('🔄 Restarting MCP Server');
     
     try {
       await this.saveState();
@@ -372,7 +288,7 @@ export class MCPServerEnhanced {
       await this.initialize();
       await this.start();
       
-      logger.info('MCP Server restarted successfully');
+      logger.info('✅ MCP Server restarted successfully');
     } catch (error) {
       logger.error('Failed to restart MCP Server', { error });
       throw error;
@@ -380,8 +296,11 @@ export class MCPServerEnhanced {
   }
 }
 
+// Initialize with crash recovery
 MCPServerEnhanced.getInstance().initialize().catch((error) => {
   logger.error('Failed to initialize Enhanced MCP Server', { error });
+  
+  // Attempt crash recovery
   setTimeout(async () => {
     logger.warn('Attempting crash recovery restart...');
     try {

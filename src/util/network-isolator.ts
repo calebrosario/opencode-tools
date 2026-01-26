@@ -407,7 +407,7 @@ export class NetworkIsolator {
         AttachStderr: true,
       });
 
-      const stream = await (await (await exec.start()));
+      const stream = await exec.start({ Detach: false });
       return new Promise((resolve) => {
         (stream as any).on('end', () => resolve(true));
         (stream as any).on('error', () => resolve(false));
