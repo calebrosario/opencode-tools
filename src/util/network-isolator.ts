@@ -289,7 +289,8 @@ export class NetworkIsolator {
         return null;
       }
 
-      const network = this.docker.getNetwork(networks[0].Id);
+      const networkId = networks[0]?.Id as string;
+      const network = this.docker.getNetwork(networkId);
       return await network.inspect();
     } catch (error: unknown) {
       logger.error('Failed to get task network info', {
@@ -406,10 +407,10 @@ export class NetworkIsolator {
         AttachStderr: true,
       });
 
-      const stream = await exec.start();
+      const stream = await (await (await exec.start()));
       return new Promise((resolve) => {
-        stream.on('end', () => resolve(true));
-        stream.on('error', () => resolve(false));
+        (stream as any).on('end', () => resolve(true));
+        (stream as any).on('error', () => resolve(false));
 
         // Timeout after 2 seconds
         setTimeout(() => resolve(false), 2000);
