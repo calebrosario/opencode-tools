@@ -155,18 +155,6 @@ export interface ContainerConfig {
 }
 
 /**
- * Container status from Docker API
- */
-export type ContainerStatus =
-  | 'created'
-  | 'running'
-  | 'paused'
-  | 'restarting'
-  | 'removing'
-  | 'exited'
-  | 'dead';
-
-/**
  * Container information
  */
 export interface ContainerInfo {

@@ -1,11 +1,13 @@
 // Task Lifecycle Manager - Phase 2: MVP Core
 // Week 9, Day 4: Task Lifecycle Implementation
+// Week 12, Day 1: Hooks Integration
 
 import { Task, TaskStatus, TaskConfig, TaskResult } from '../types';
 import { taskRegistry } from '../task-registry/registry';
 import { multiLayerPersistence } from '../persistence/multi-layer';
 import { logger } from '../util/logger';
 import { lockManager } from '../util/lock-manager';
+import { taskLifecycleHooks } from "../hooks/task-lifecycle"';
 
 export class TaskLifecycle {
   private static instance: TaskLifecycle;
@@ -56,8 +58,12 @@ export class TaskLifecycle {
 
   /**
    * Start a task (transition: pending → running)
+   * Executes: beforeTaskStart hooks → start → afterTaskStart hooks
    */
   public async startTask(taskId: string, agentId: string): Promise<Task> {
+    // Execute before hooks
+    await taskLifecycleHooks.executeBeforeTaskStart(taskId, agentId);
+
     return lockManager.withLock(
       `task:${taskId}`,
       `lifecycle:${agentId}`,
@@ -92,8 +98,12 @@ export class TaskLifecycle {
 
   /**
    * Complete a task (transition: running → completed)
+   * Executes: beforeTaskComplete hooks → complete → afterTaskComplete hooks
    */
   public async completeTask(taskId: string, result: TaskResult): Promise<Task> {
+    // Execute before hooks
+    await taskLifecycleHooks.executeBeforeTaskComplete(taskId, result);
+
     const task = await taskRegistry.getById(taskId);
     if (!task) {
       throw new Error(`Task not found: ${taskId}`);
@@ -128,8 +138,12 @@ export class TaskLifecycle {
 
   /**
    * Fail a task (transition: running → failed)
+   * Executes: beforeTaskFail hooks → fail → afterTaskFail hooks
    */
   public async failTask(taskId: string, error: string): Promise<Task> {
+    // Execute before hooks
+    await taskLifecycleHooks.executeBeforeTaskFail(taskId, error);
+
     const task = await taskRegistry.getById(taskId);
     if (!task) {
       throw new Error(`Task not found: ${taskId}`);
