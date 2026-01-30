@@ -91,6 +91,9 @@ export class TaskLifecycle {
 
         logger.info('Task started', { taskId, agentId });
 
+        // Execute after hooks
+        await taskLifecycleHooks.executeAfterTaskStart(taskId, agentId);
+
         return updated;
       }
     );
@@ -131,6 +134,9 @@ export class TaskLifecycle {
 
         logger.info('Task completed', { taskId, result });
 
+        // Execute after hooks
+        await taskLifecycleHooks.executeAfterTaskComplete(taskId, result);
+
         return updated;
       }
     );
@@ -170,6 +176,9 @@ export class TaskLifecycle {
         });
 
         logger.error('Task failed', { taskId, error });
+
+        // Execute after hooks
+        await taskLifecycleHooks.executeAfterTaskFail(taskId, error);
 
         return updated;
       }
