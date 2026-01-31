@@ -4,7 +4,29 @@
 import Dockerode from 'dockerode';
 import { logger } from '../util/logger';
 import { NetworkIsolator } from '../util/network-isolator';
-import { OpenCodeError, ErrorCode } from '../types';
+import { OpenCodeError } from '../types';
+
+// ErrorCode constants
+const ErrorCode = {
+  NETWORK_INITIALIZATION_FAILED: "NETWORK_INITIALIZATION_FAILED",
+  NETWORK_CREATION_FAILED: "NETWORK_CREATION_FAILED",
+  NETWORK_DELETION_FAILED: "NETWORK_DELETION_FAILED",
+  NETWORK_CONNECTION_FAILED: "NETWORK_CONNECTION_FAILED",
+  NETWORK_DISCONNECTION_FAILED: "NETWORK_DISCONNECTION_FAILED",
+  NETWORK_LIST_FAILED: "NETWORK_LIST_FAILED",
+  NETWORK_INFO_FAILED: "NETWORK_INFO_FAILED",
+  NETWORK_MONITORING_FAILED: "NETWORK_MONITORING_FAILED",
+  NETWORK_DNS_CONFIGURATION_FAILED: "NETWORK_DNS_CONFIGURATION_FAILED",
+  NETWORK_REMOVAL_FAILED: "NETWORK_REMOVAL_FAILED",
+  NETWORK_NOT_FOUND: "NETWORK_NOT_FOUND",
+  NETWORK_CREATE_FAILED: "NETWORK_CREATE_FAILED",
+  NETWORK_DELETE_FAILED: "NETWORK_DELETE_FAILED",
+  NETWORK_CONNECT_FAILED: "NETWORK_CONNECT_FAILED",
+  NETWORK_DISCONNECT_FAILED: "NETWORK_DISCONNECT_FAILED",
+  NETWORK_ISOLATION_FAILED: "NETWORK_ISOLATION_FAILED",
+  NETWORK_ALREADY_ISOLATED: "NETWORK_ALREADY_ISOLATED",
+  NETWORK_NOT_ISOLATED: "NETWORK_NOT_ISOLATED",
+};
 import Docker from 'dockerode';
 
 /**
@@ -361,11 +383,11 @@ export class NetworkManager {
    *
    * @param networkId - Network ID
    */
-  async isolateNetwork(networkId: string): Promise<void> {
+  async isolateNetwork(networkId: string, taskId?: string): Promise<void> {
     try {
       logger.info('Isolating network', { networkId });
 
-      await this.networkIsolator.isolateNetwork(networkId);
+      await this.networkIsolator.isolateNetwork(networkId, taskId || networkId);
 
       logger.info('Network isolated successfully', { networkId });
     } catch (error: any) {
@@ -423,7 +445,7 @@ export class NetworkManager {
         driver: network.Driver,
         internal: network.Internal,
         containers: Object.keys(network.Containers || {}),
-        created: new Date((network.Created || 0) * 1000),
+        created: new Date((typeof network.Created === 'number' ? network.Created : 0) * 1000),
       };
 
       logger.debug('Network monitoring stats', { networkId, stats });
@@ -459,7 +481,7 @@ export class NetworkManager {
         scope: network.Scope || '',
         internal: network.Internal || false,
         labels: network.Labels,
-        created: new Date((network.Created || 0) * 1000),
+        created: new Date(typeof network.Created === "number" ? network.Created * 1000 : Date.now()),
         containers: Object.keys(network.Containers || {}),
       };
     } catch (error: any) {

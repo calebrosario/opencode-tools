@@ -327,9 +327,9 @@ export class VolumeManager {
       }
 
       const volumes = await this.docker.listVolumes(listOptions);
-      const volumesData = volumes.Volumes || [];
+      const volumesData = (volumes as any).Volumes || [];
 
-      return volumesData.map(volume => this.mapVolumeInfo(volume));
+      return volumesData.map((volume: any) => this.mapVolumeInfo(volume));
     } catch (error: unknown) {
       logger.error('Failed to list volumes', {
         error: error instanceof Error ? error.message : String(error),

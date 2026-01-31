@@ -3,6 +3,7 @@
 export interface TaskConfig {
   id?: string;
   name: string;
+  description?: string;
   owner?: string;
   metadata?: Record<string, any>;
 }
