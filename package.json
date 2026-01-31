@@ -29,7 +29,9 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@types/commander": "^2.12.0",
     "better-sqlite3": "^9.4.3",
+    "commander": "^14.0.2",
     "dockerode": "^4.0.2",
     "dotenv": "^16.3.1",
     "emittery": "^1.0.1",
