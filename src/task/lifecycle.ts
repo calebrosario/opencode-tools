@@ -2,12 +2,13 @@
 // Week 9, Day 4: Task Lifecycle Implementation
 // Week 12, Day 1: Hooks Integration
 
-import { Task, TaskStatus, TaskConfig, TaskResult } from '../types';
+import { Task, TaskStatus } from '../types';
+import type { TaskConfig, TaskResult } from '../types/lifecycle';
 import { taskRegistry } from '../task-registry/registry';
 import { multiLayerPersistence } from '../persistence/multi-layer';
 import { logger } from '../util/logger';
 import { lockManager } from '../util/lock-manager';
-import { taskLifecycleHooks } from "../hooks/task-lifecycle"';
+import { taskLifecycleHooks } from '../hooks/task-lifecycle';
 
 export class TaskLifecycle {
   private static instance: TaskLifecycle;
@@ -57,8 +58,8 @@ export class TaskLifecycle {
   }
 
   /**
-   * Start a task (transition: pending → running)
-   * Executes: beforeTaskStart hooks → start → afterTaskStart hooks
+   * Start a task (transition: pending -> running)
+   * Executes: beforeTaskStart hooks -> start -> afterTaskStart hooks
    */
   public async startTask(taskId: string, agentId: string): Promise<Task> {
     // Execute before hooks
@@ -100,8 +101,8 @@ export class TaskLifecycle {
   }
 
   /**
-   * Complete a task (transition: running → completed)
-   * Executes: beforeTaskComplete hooks → complete → afterTaskComplete hooks
+   * Complete a task (transition: running -> completed)
+   * Executes: beforeTaskComplete hooks -> complete -> afterTaskComplete hooks
    */
   public async completeTask(taskId: string, result: TaskResult): Promise<Task> {
     // Execute before hooks
@@ -143,8 +144,8 @@ export class TaskLifecycle {
   }
 
   /**
-   * Fail a task (transition: running → failed)
-   * Executes: beforeTaskFail hooks → fail → afterTaskFail hooks
+   * Fail a task (transition: running -> failed)
+   * Executes: beforeTaskFail hooks -> fail -> afterTaskFail hooks
    */
   public async failTask(taskId: string, error: string): Promise<Task> {
     // Execute before hooks
@@ -186,7 +187,7 @@ export class TaskLifecycle {
   }
 
   /**
-   * Cancel a task (transition: pending → cancelled or running → cancelled)
+   * Cancel a task (transition: pending -> cancelled or running -> cancelled)
    */
   public async cancelTask(taskId: string): Promise<Task> {
     const task = await taskRegistry.getById(taskId);
@@ -222,7 +223,7 @@ export class TaskLifecycle {
   }
 
   /**
-   * Delete a task (transition: any status → deleted)
+   * Delete a task (transition: any status -> deleted)
    */
   public async deleteTask(taskId: string): Promise<void> {
     const task = await taskRegistry.getById(taskId);

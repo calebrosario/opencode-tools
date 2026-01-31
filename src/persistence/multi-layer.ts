@@ -94,9 +94,9 @@ export class MultiLayerPersistence {
       const state = JSON.parse(data) as TaskState;
 
       // Validate checksum
-      const validation = stateValidator.validateState(data);
-      if (!validation.valid) {
-        throw new Error(`State validation failed: ${validation.error}`);
+      const validation = stateValidator.validateSnapshot(data as any);
+      if (!validation.isValid) {
+        throw new Error(`State validation failed: ${validation.errors.join(', ')}`);
       }
 
       return state;
@@ -386,7 +386,7 @@ ${decision.metadata ? `**Metadata**: \`${JSON.stringify(decision.metadata)}\`` :
     const decisionMatch = lines.find(l => l.startsWith('**Decision**:'));
 
     return {
-      timestamp: lines[0].replace('## ', ''),
+      timestamp: (lines[0] || '').replace('## ', '') || new Date().toISOString(),
       agentId: agentMatch?.split(':** ')[1] || '',
       decision: decisionMatch?.split(':** ')[1] || '',
       reasoning: lines.slice(4, lines.length - 2).join('\n'),

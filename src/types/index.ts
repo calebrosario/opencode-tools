@@ -1,9 +1,13 @@
 // Core TypeScript interfaces and types for OpenCode Tools
 
+// Re-export lifecycle types
+export type { TaskConfig, TaskResult } from './lifecycle';
+
 // Task-related types
 export interface Task {
   id: string;
   name: string;
+  description?: string;
   status: TaskStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -36,7 +40,9 @@ export type ContainerStatus =
   | 'paused'
   | 'stopped'
   | 'exited'
-  | 'dead';
+  | 'dead'
+  | 'restarting'
+  | 'removing';
 
 export interface ContainerPort {
   containerPort: number;

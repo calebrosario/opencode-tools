@@ -1,351 +1,197 @@
-# OpenCode Tools Research
+# OpenCode Tools
 
-> Deep dive research and prototyping for a Docker-based task management system with concurrency, state persistence, and multi-agent orchestration.
+> Docker-based task management system with concurrency, state persistence, and multi-agent orchestration.
 
----
+## Quick Links
+
+- **Documentation**: [docs/](./docs/) - Complete API reference, user guide, and state machine diagrams
+- **API Reference**: [docs/API.md](./docs/API.md) - Complete API documentation
+- **User Guide**: [docs/USER_GUIDE.md](./docs/USER_GUIDE.md) - Tutorials and best practices
+- **State Machines**: [docs/diagrams/](./docs/diagrams/) - Complete system state machine diagrams
 
 ## Overview
 
-This repository contains **Phase -1: Deep Dive Research** for building a production-ready Docker task management system. The research focuses on:
+OpenCode Tools is a production-ready system for managing AI agent tasks with:
 
-- **Docker integration** via Engine API (not Sandbox API)
-- **Concurrency models** for multi-agent workflows
-- **State persistence** using multi-layer architecture
-- **JSONL logging** for audit trails and recovery
-- **Database strategy** (SQLite MVP → PostgreSQL scale-out)
+- **Docker Integration**: Full lifecycle management for Docker containers
+- **Concurrency Control**: Optimistic locking for multi-agent workflows
+- **State Persistence**: 4-layer architecture (state, logs, decisions, checkpoints)
+- **Multi-Agent Orchestration**: Support for collaborative and exclusive task modes
+- **MCP Integration**: Model Context Protocol server for agent communication
+- **CLI Tools**: 13 command-line utilities for task management
 
-**Current Status**: Phase -1 Complete (100% overall)
+## Current Status
 
----
+**Version**: 0.1.0 (Alpha)
+**Phase**: Phase 2 - Integration & Alpha Release
+**Branch**: master
+
+### Completed Features
+
+✅ Phase 0: Deep Dive Research (100%)
+- Docker Engine API integration
+- Concurrency models with optimistic locking
+- Multi-layer persistence architecture
+- JSONL logging benchmarks
+
+✅ Phase 1: Core Infrastructure (100%)
+- TaskRegistry with SQLite backend
+- LockManager with optimistic locking
+- MultiLayerPersistence with 4 layers
+- NetworkManager and VolumeManager
+- Resource monitoring and isolation
+- Crash recovery system
+
+✅ Phase 2: MVP Core (100%)
+- TaskLifecycle with state transitions
+- MCP Server with 8 tools
+- Hook system (6 hook types)
+- 13 CLI commands (task management, checkpoints, memory)
+- Integration and E2E tests
+- Complete documentation (README, API, User Guide, State Machines)
 
 ## Quick Start
 
-### Prerequisites
-
-- **Node.js** v20+ (for TypeScript execution)
-- **TypeScript** (for running test scripts)
-- **SQLite** v3.45+ (for database benchmarks)
-
-### Installation
+### Start the MCP Server
 
 ```bash
-# Install TypeScript dependencies
-npm install --save-dev typescript tsx better-sqlite3 @types/better-sqlite3
-
-# Run test suites
-cd .research
-npx tsx sqlite-performance-test.ts  # SQLite benchmarks
-npx tsx concurrency-test.ts          # Concurrency tests
-npx tsx jsonl-benchmark-script.ts     # JSONL benchmarks
+npm start
 ```
 
-### Running Benchmarks
+### Use CLI Commands
 
 ```bash
-# SQLite performance (100K+ tasks)
-cd .research && npx tsx sqlite-performance-test.ts
+# List all tasks
+npm run cli -- list-tasks
 
-# Concurrent write stress test (10-100 writers)
-cd .research && npx tsx sqlite-concurrent-stress-test.ts
+# Create a new task
+npm run cli -- create-task "My Task" --owner agent-1
 
-# JSONL benchmarks (1M+ entries)
-cd .research && npx tsx jsonl-benchmark-script.ts
-
-# Log rotation tests (200K entries)
-cd .research && npx tsx log-rotation-test.ts
-
-# Recovery tests (1M entries)
-cd .research && npx tsx recovery-test.ts
+# View task history
+npm run cli -- task-history --task task-123
 ```
 
----
+## Key Features
 
-## Research Structure
+### 1. Task Lifecycle
 
-```
-opencode-tools/
-├── README.md                          # This file (onboarding document)
-├── .research/                         # All research and test suites
-│   ├── tracking.md                     # Progress tracking board
-│   ├── WEEK2-COMPLETION-SUMMARY.md    # Week 2 completion summary
-│   │
-│   ├── Week 1: Docker Research
-│   │   ├── docker-sandbox-api-benchmark.md
-│   │   ├── docker-engine-api-research.md
-│   │   ├── docker-engine-api-pivot-summary.md
-│   │   └── architecture-decision-record.md
-│   │
-│   ├── Week 2: Concurrency & State
-│   │   ├── concurrency-prototype.md      # Optimistic locking research
-│   │   ├── concurrency-prototype.ts     # Implementation
-│   │   ├── concurrency-test.ts          # Test suite
-│   │   │
-│   │   ├── state-persistence-benchmark.md
-│   │   ├── state-persistence-prototype.ts
-│   │   ├── state-persistence-test.ts
-│   │   │
-│   │   ├── jsonl-benchmark.md
-│   │   ├── jsonl-benchmark-script.ts
-│   │   ├── jsonl-benchmark-test-results.md
-│   │   ├── log-rotation-test.ts
-│   │   ├── recovery-test.ts
-│   │   │
-│   │   ├── sqlite-performance-test.ts
-│   │   ├── sqlite-concurrent-stress-test.ts
-│   │   └── sqlite-postgresql-comparison.md
-│   │
-│   └── Documentation
-│       ├── template.md                  # Research template
-│       └── standup-*.md                # Daily standups
-│
-└── .sisyphus/                        # Plans and drafts
-    ├── plans/                          # Implementation plans
-    └── drafts/                         # Work in progress
-```
+Complete state machine with transitions:
+- pending → running (agent attaches)
+- running → completed (task finishes)
+- running → failed (error occurs)
+- pending → cancelled (user/system cancels)
+- any → deleted (cleanup)
 
----
+### 2. Concurrency Control
 
-## Key Findings
+Optimistic locking with two modes:
+- Exclusive: Single agent only
+- Collaborative: Multiple agents with conflict resolution
 
-### Docker Integration
+### 3. Multi-Layer Persistence
 
-**🔴 Critical Discovery**: Docker Sandbox API is **NOT** a general-purpose API
-- CLI-only interface (no REST API, no SDK libraries)
-- Experimental status (may change/be discontinued)
-- Limited to AI agent workflows only
-- ❌ Not suitable for production use
+4 storage layers:
+- Layer 1: state.json (current state, fast access)
+- Layer 2: logs.jsonl (audit trail, append-only)
+- Layer 3: decisions.md (agent decisions, human-readable)
+- Layer 4: checkpoints/ (snapshots, point-in-time recovery)
 
-**✅ Solution**: Docker Engine API (v1.47+) (research [\`docker-engine-api-research.md\`](.research/docker-engine-api-research.md))
-- Stable, mature, production-ready
-- Complete lifecycle operations (create, start, stop, remove, kill, restart)
-- Full resource limiting (memory, CPU, PIDs, block I/O)
-- Comprehensive security options (seccomp, AppArmor, namespaces)
-- **Recommended SDK**: Dockerode for TypeScript/MCP integration
+### 4. Hook System
 
-**Performance**:
-- Container creation: 50-200ms
-- Container start: 50-100ms
-- Container stop: 20-50ms
+6 hook types for extensibility:
+- beforeTaskStart / afterTaskStart
+- beforeTaskComplete / afterTaskComplete
+- beforeTaskFail / afterTaskFail
 
-### Concurrency Model
+### 5. MCP Tools
 
-**Optimistic Locking** (implemented in [\`concurrency-prototype.ts\`](.research/concurrency-prototype.ts))
+8 tools for task management:
+- create_task_sandbox, attach_agent_to_task
+- detach_agent_from_task, execute_in_task
+- list_tasks, get_task_status, cancel_task, delete_task
 
-| Mode | Success Rate | Recommendation |
-|------|--------------|----------------|
-| **Collaborative** | 100% | Use for multi-agent scenarios |
-| **Exclusive** | 1-10% | Needs FCFS queue |
+### 6. CLI Commands
 
-**Performance**:
-- Lock acquisition: <1ms
-- Lock throughput: 742K ops/sec
-- Conflict detection: <5ms
-
-### State Persistence Architecture
-
-**4-Layer Persistence** (designed in [\`state-persistence-benchmark.md\`](.research/state-persistence-benchmark.md))
-
-```
-┌─────────────────────────────────────────────────┐
-│  Layer 1: state.json                            │  Current task state
-│  Layer 2: JSONL logs                            │  Immutable audit trail
-│  Layer 3: decisions.md                          │  Agent decisions
-│  Layer 4: checkpoints                           │  Filesystem snapshots
-└─────────────────────────────────────────────────┘
-```
-
-**Benefits**:
-- Clear separation of concerns
-- Fast in-memory access (Layer 1)
-- Complete audit trail (Layer 2)
-- Human-readable decisions (Layer 3)
-- Point-in-time recovery (Layer 4)
-
-### JSONL Logging Performance
-
-**Benchmarks** (1M entries): (research [\`jsonl-benchmark.md\`](.research/jsonl-benchmark.md))
-
-| Operation | Ops/sec | Status |
-|-----------|----------|--------|
-| **Simple Append** | 10,785 | ✅ PASS |
-| **Batched Append** | 377,060 | ✅ PASS (35x faster) |
-| **Read & Parse** | 1,101,795 | ✅ PASS |
-
-**File Size**: 183MB for 1M entries (183 bytes/entry)
-
-**Recommendations**:
-- Use batched appends (100 entries/batch)
-- Hybrid rotation: Size (50MB) + Time (24h) + Count (60K entries)
-- Streaming recovery for files >50MB (5.9% memory savings)
-
-### Database Strategy
-
-**SQLite for MVP** (tested with 100K+ tasks) (research [\`sqlite-postgresql-comparison.md\`](.research/sqlite-postgresql-comparison.md))
-
-| Operation | Ops/sec | Status |
-|-----------|----------|--------|
-| **Batch Insert** | 212,319 | ✅ PASS |
-| **Single Row Read** | 302,724 | ✅ PASS |
-| **Range Query** | 18,197 | ✅ PASS |
-| **Update** | 13,009 | ✅ PASS |
-| **Full Table Scan** | 731,917 | ✅ PASS |
-
-**Database Size**: 23.36MB for 100K tasks (233 bytes/task)
-
-**Concurrent Writes** (tested 10-100 writers):
-- ✅ 100% success rate at all levels
-- ✅ Zero write failures across 10,000 operations
-- ✅ Best throughput: 66,426 ops/sec at 100 writers
-
-**Migration Path**: SQLite → PostgreSQL
-- Trigger: >20 concurrent writers OR >10GB data
-- Time: 2-4 weeks
-- Risk: Low (clear migration steps)
-
----
-
-## Progress
-
-### Phase -1: Deep Dive Research
-
-**Start Date**: 2026-01-20
-**Status**: 100% Complete (24/24 tasks)
-
-| Week | Focus | Status | Completion |
-|------|-------|--------|------------|
-### Week 3: Event System & Architecture
-
-**Start Date**: 2026-01-21
-**End Date**: 2026-01-21
-
-1. [\`event-system-prototype.md\`](.research/event-system-prototype.md) - Event system prototype (612 lines)
-2. [\`integration-prototype.md\`](.research/integration-prototype.md) - Integration research (924 lines)
-3. [\`architecture-week3-review.md\`](.research/architecture-week3-review.md) - Architecture review (558 lines)
-4. [\`risk-register.md\`](.research/risk-register.md) - Risk register (570 lines)
-5. [\`state-machine-diagrams.md\`](.research/state-machine-diagrams.md) - State machine diagrams (464 lines)
-6. [\`architecture-decision-record.md\`](.research/architecture-decision-record.md) - ADR updated (610 lines)
-
----
+13 commands organized by category:
+- 6 task management commands
+- 2 checkpoint commands
+- 5 memory commands
 
 ## Documentation
 
-### Research Documents
+For detailed documentation, see:
 
-**Week 1: Docker Research**
-1. [`docker-sandbox-api-benchmark.md`](.research/docker-sandbox-api-benchmark.md) - Critical finding: Sandbox API not suitable
-2. [`docker-engine-api-research.md`](.research/docker-engine-api-research.md) - Comprehensive Engine API research
-3. [`docker-engine-api-pivot-summary.md`](.research/docker-engine-api-pivot-summary.md) - Pivot impact analysis
-4. [`architecture-decision-record.md`](.research/architecture-decision-record.md) - Docker Engine API ADR
+- **[docs/README.md](./docs/README.md)** - Complete project documentation
+  - Installation instructions
+  - Architecture overview
+  - Configuration guide
+  - Common use cases
+  - Troubleshooting guide
 
-**Week 2: Concurrency & State**
-1. [`concurrency-prototype.md`](.research/concurrency-prototype.md) - Optimistic locking research (408 lines)
-2. [`state-persistence-benchmark.md`](.research/state-persistence-benchmark.md) - 4-layer architecture (463 lines)
-3. [`jsonl-benchmark.md`](.research/jsonl-benchmark.md) - JSONL performance (529 lines)
-4. [`jsonl-benchmark-test-results.md`](.research/jsonl-benchmark-test-results.md) - Test results (180 lines)
-5. [`sqlite-postgresql-comparison.md`](.research/sqlite-postgresql-comparison.md) - Database comparison (456 lines)
+- **[docs/API.md](./docs/API.md)** - Complete API reference
+  - All 8 MCP tools documented
+  - TaskLifecycle, TaskRegistry, MultiLayerPersistence APIs
+  - LockManager and Hook System APIs
+  - All data models and type definitions
+  - Request/response formats
+  - Error codes
 
-### Test Suites
+- **[docs/USER_GUIDE.md](./docs/USER_GUIDE.md)** - Complete user guide
+  - Step-by-step tutorials
+  - All 13 CLI commands with examples
+  - Best practices and advanced patterns
+  - Troubleshooting guide
+  - FAQ section
 
-**Concurrency**
-- [`concurrency-prototype.ts`](.research/concurrency-prototype.ts) - Optimistic locking implementation
-- [`concurrency-test.ts`](.research/concurrency-test.ts) - Test suite
+- **[docs/diagrams/](./docs/diagrams/)** - Complete state machine diagrams
+  - Task Lifecycle state machine
+  - Lock Manager state machine
+  - Multi-Layer Persistence state machine
+  - Integration points and error recovery patterns
 
-**State Persistence**
-- [`state-persistence-prototype.ts`](.research/state-persistence-prototype.ts) - 4-layer persistence engine
-- [`state-persistence-test.ts`](.research/state-persistence-test.ts) - Test suite
+## Performance
 
-**JSONL Performance**
-- [`jsonl-benchmark-script.ts`](.research/jsonl-benchmark-script.ts) - JSONL benchmarks
-- [`log-rotation-test.ts`](.research/log-rotation-test.ts) - Rotation tests
-- [`recovery-test.ts`](.research/recovery-test.ts) - Recovery tests
+**SQLite (100K Tasks)**:
+- Batch Insert: 212,319 ops/sec
+- Single Row Read: 302,724 ops/sec
+- Database Size: 23.36MB
 
-**Database**
-- [`sqlite-performance-test.ts`](.research/sqlite-performance-test.ts) - SQLite benchmarks
-- [`sqlite-concurrent-stress-test.ts`](.research/sqlite-concurrent-stress-test.ts) - Concurrent write stress test
+**JSONL (1M Entries)**:
+- Simple Append: 10,785 ops/sec
+- Batch Append: 377,060 ops/sec (35x faster)
+- File Size: 183MB
 
-### Tracking & Summaries
-
-- [`tracking.md`](.research/tracking.md) - Progress tracking board (580+ lines)
-- [`WEEK2-COMPLETION-SUMMARY.md`](.research/WEEK2-COMPLETION-SUMMARY.md) - Week 2 summary (800+ lines)
-- [`HANDOFF-TO-NEXT-SESSION.md`](.research/HANDOFF-TO-NEXT-SESSION.md) - Handoff notes
-
----
-
-## Getting Started
-
-### For New Contributors
-
-1. **Read the research**: Start with `tracking.md` for overview
-2. **Review key decisions**: Check `architecture-decision-record.md`
-3. **Run benchmarks**: Execute test suites to understand performance characteristics
-4. **Join the discussion**: Check daily standups and handoff documents
-
-### For Researchers
-
-1. **Use the template**: `.research/template.md` for new research documents
-2. **Track progress**: Update `tracking.md` with task completion
-3. **Create test suites**: Validate findings with benchmarks
-4. **Document findings**: Create/update markdown documents
-
-### For Implementers
-
-1. **Review prototypes**: Check `.ts` files for implementation patterns
-2. **Read benchmarks**: Understand performance characteristics
-3. **Check ADRs**: Review architecture decisions before implementing
-4. **Run tests**: Validate performance meets targets
-
----
-
-## Confidence & Risk
-
-**Confidence Level**: VERY HIGH
-
-**Reasoning**:
-- All benchmarks passed with 100% success rate
-- Performance targets exceeded by 3-7300x
-- SQLite performance verified with 100K+ actual operations
-- Concurrent writes verified with 100 real writers
-- Clear technical decisions made with test data
-
-**Risk Level**: LOW
-
-**Reasoning**:
-- All tested strategies validated with actual test data
-- No critical findings that would require pivot
-- Database migration path is clear and well-defined
-- All performance targets exceeded
-
----
-
----
+**Lock Manager**:
+- Lock Acquisition: <1ms
+- Lock Throughput: 742K ops/sec
+- Conflict Detection: <5ms
 
 ## Contributing
 
-### Research Guidelines
-- Use `.research/template.md` for new documents
-- Track progress in `tracking.md`
-- Validate findings with benchmarks
-- Document all decisions
+### Development Workflow
 
-### Test Guidelines
-- Create test scripts (`.ts` files)
-- Measure performance with clear metrics
-- Document results in separate markdown files
-- Use consistent naming conventions
+1. Create feature branch: `git checkout -b feature/my-feature`
+2. Make changes and test: `npm test`
+3. Type check: `npm run type-check`
+4. Lint: `npm run lint`
+5. Commit: `git commit -m "feat: add my feature"`
+6. Push: `git push origin feature/my-feature`
+7. Create Pull Request
 
----
+### Testing
 
-## License
+```bash
+# Run all tests
+npm test
 
-TBD (to be determined in Phase 0)
+# Watch mode
+npm run test:watch
 
----
-
-## Contact & Support
-
-**Research Lead**: Backend Engineer (Simulated)
-**Phase -1 Lead**: Senior Architect (Simulated)
-**Project Start**: 2026-01-20
-**Current Phase**: Week 3 (Upcoming)
+# Coverage report
+npm run test:coverage
+```
 
 ---
+
+**Version**: 0.1.0-alpha
+**Last Updated**: 2026-01-31

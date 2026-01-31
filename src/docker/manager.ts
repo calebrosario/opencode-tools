@@ -52,11 +52,9 @@ interface DockerodeContainerStats {
   cpu_stats: {
     cpu_usage: {
       total_usage: number;
-    };
-    system_cpu_usage: number;
-    cpu_usage?: {
       percpu_usage?: number[] | null;
     };
+    system_cpu_usage: number;
     online_cpus: number;
   };
   precpu_stats: {
@@ -454,7 +452,7 @@ export class DockerManager {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
-      const info = (await container.inspect()) as DockerodeContainerInfo;
+      const info = await container.inspect() as any;
 
       return this.mapContainerInfo(info);
     } catch (error: unknown) {
@@ -481,9 +479,9 @@ export class DockerManager {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
-      const info = (await container.inspect()) as DockerodeContainerInfo;
+      const info = await container.inspect() as any;
 
-      return this.mapContainerStatus(info.State);
+      return this.mapContainerStatus(info.State || "unknown");
     } catch (error: unknown) {
       logger.error('Failed to get container status', {
         containerId,
@@ -519,16 +517,20 @@ export class DockerManager {
 
       const container = this.docker.getContainer(containerId);
 
-      const logOptions: Docker.ContainerInspectOptions = {
+
+      const logOptions = {
         stdout: options.stdout !== false,
         stderr: options.stderr !== false,
         tail: options.tail || 100,
         since: options.since,
         timestamps: options.timestamps || false,
-      };
+        follow: false,
+      } as Docker.ContainerLogsOptions;
 
-      const logs = await container.logs(logOptions);
-      const logString = logs.toString('utf-8');
+
+      const logs = await (container.logs as any)(logOptions);
+
+      const logString = logs.toString();
 
       // Parse demuxed logs (stdout/stderr separation)
       const result: LogStream = { stdout: [], stderr: [] };
@@ -536,15 +538,15 @@ export class DockerManager {
       if (logOptions.stdout) {
         result.stdout = logString
           .split('\n')
-          .filter(line => line && !line.startsWith('└─'))
-          .map(line => line.replace(/^\d+ /, ''));
+          .filter((line: string) => line && !line.startsWith("└─"))
+          .map((line: string) => line.replace(/^\d+ /, ""));
       }
 
       if (logOptions.stderr) {
         result.stderr = logString
           .split('\n')
-          .filter(line => line && line.startsWith('└─'))
-          .map(line => line.replace(/^└─\d+ /, ''));
+          .filter((line: string) => line && line.startsWith("└─"))
+          .map((line: string) => line.replace(/^└─\d+ /, ""));
       }
 
       return result;
@@ -672,7 +674,7 @@ export class DockerManager {
     const { name, image, command, entrypoint, workingDir, env, mounts, ports, network, networkAliases, dns, extraHosts, resourceLimits, security, restartPolicy, hostname, labels, logOptions, autoRemove } = config;
 
     // Default resource limits from config
-    const defaultMemory = CONTAINER_MEMORY_MB * 1024 * 1024; // Convert MB to bytes
+    const defaultMemory = CONTAINER_MEMORY_MB * 1024 * 1024;
     const defaultCpuShares = CONTAINER_CPU_SHARES;
     const defaultPidsLimit = CONTAINER_PIDS_LIMIT;
 
@@ -782,10 +784,10 @@ export class DockerManager {
       HostConfig: hostConfig,
       Labels: labels,
       Hostname: hostname,
-      NetworkingConfig: network || networkAliases
+      NetworkingConfig: (network || networkAliases)
         ? {
             EndpointsConfig: {
-              [network || 'bridge']: {
+              [(network || 'bridge')]: {
                 Aliases: networkAliases,
               },
             },
@@ -815,7 +817,6 @@ export class DockerManager {
 
     return createOptions;
   }
-
   /**
    * Map Dockerode container info to our ContainerInfo type
    */
@@ -826,7 +827,7 @@ export class DockerManager {
     return {
       id: containerId,
       shortId,
-      name: info.Names[0].replace(/^\//, ''),
+      name: info.Names && info.Names[0] ? info.Names[0].replace(/^\//, "") : "",
       image: info.Image,
       status: this.mapContainerStatus(info.State),
       createdAt: new Date(info.Created * 1000),
@@ -874,8 +875,12 @@ export class DockerManager {
    */
   private mapContainerStats(stats: DockerodeContainerStats): DockerContainerStats {
     // Calculate CPU percentage
-    const cpuDelta = stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
-    const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage;
+    const cpuDelta = stats.precpu_stats?.cpu_usage?.total_usage !== undefined
+      ? stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage
+      : 0;
+    const systemDelta = stats.precpu_stats?.system_cpu_usage !== undefined
+      ? stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage
+      : 0;
     const cpuPercent = systemDelta > 0 ? (cpuDelta / systemDelta) * 100 * stats.cpu_stats.online_cpus : 0;
 
     // Calculate memory usage

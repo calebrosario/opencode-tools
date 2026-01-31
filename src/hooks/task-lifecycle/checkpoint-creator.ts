@@ -3,7 +3,8 @@
 
 import { multiLayerPersistence } from '../../persistence/multi-layer';
 import { logger } from '../../util/logger';
-import { BeforeTaskCompleteHook, TaskResult } from '../task-lifecycle';
+import { BeforeTaskCompleteHook } from '../task-lifecycle';
+import type { TaskResult } from '../../types/lifecycle';
 
 /**
  * Create a checkpoint before task completion

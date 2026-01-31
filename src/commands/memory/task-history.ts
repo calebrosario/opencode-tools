@@ -32,8 +32,8 @@ export const taskHistoryCommand = new Command('task-history')
       const logs = await multiLayerPersistence.loadLogs(taskId, {
         level: options.level,
         limit: options.limit ? Number(options.limit) : 50,
-        startDate: options.start ? new Date(options.start) : undefined,
-        endDate: options.end ? new Date(options.end) : undefined,
+        startDate: options.start ? options.start : undefined,
+        endDate: options.end ? options.end : undefined,
       });
 
       displayLogs(logs, taskId);
@@ -52,8 +52,8 @@ function displayLogs(logs: any[], taskId: string): void {
   console.log(`\nTask History for ${taskId} (${logs.length} entries):\n`);
 
   logs.forEach((log: any, index: number) => {
-    const timestamp = new Date(log.timestamp).toISOString();
-    const level = log.level.toUpperCase().padEnd(5);
+    const timestamp = new Date(log.timestamp as string | Date).toISOString();
+    const level = log.level?.toUpperCase?.().padEnd(5) || 'INFO'.padEnd(5);
     const prefix = `${index + 1}. [${level}] ${timestamp}`;
     
     console.log(prefix);

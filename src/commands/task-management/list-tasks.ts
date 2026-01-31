@@ -3,6 +3,7 @@
 
 import { Command } from 'commander';
 import { taskRegistry } from '../../task-registry/registry';
+import type { TaskStatus } from '../../types';
 
 /**
  * Display tasks with optional filtering and pagination
@@ -23,13 +24,13 @@ export const listTasksCommand = new Command('list-tasks')
   }) => {
     try {
       const tasks = await taskRegistry.list({
-        status: options.status,
+        status: options.status as TaskStatus,
         owner: options.owner,
         limit: options.limit ? Number(options.limit) : undefined,
         offset: options.offset ? Number(options.offset) : undefined,
       });
 
-      displayTasks(tasks, options.verbose);
+      displayTasks(tasks, options.verbose ?? false);
     } catch (error: any) {
       console.error('❌ Failed to list tasks:', error.message);
       process.exit(1);
@@ -48,9 +49,9 @@ function displayTasks(tasks: any[], verbose: boolean): void {
     const prefix = `${index + 1}.`;
     console.log(`${prefix} ${task.name} (${task.id})`);
     console.log(`   Status: ${task.status}`);
-    console.log(`   Owner: ${task.owner}`);
-    console.log(`   Created: ${task.createdAt.toISOString()}`);
-    console.log(`   Updated: ${task.updatedAt.toISOString()}`);
+    console.log(`   Owner: ${task.owner || 'N/A'}`);
+    console.log(`   Created: ${new Date(task.createdAt as string | Date).toISOString()}`);
+    console.log(`   Updated: ${new Date(task.updatedAt as string | Date).toISOString()}`);
     
     if (verbose) {
       if (task.description) {

@@ -16,7 +16,7 @@ import './mcp/server';
 const args = process.argv.slice(2);
 
 // Check if running CLI commands (has subcommand argument)
-if (args.length > 0 && !args[0].startsWith('-')) {
+if (args.length > 0 && args[0] && !args[0].startsWith('-')) {
   // CLI mode - delegate to CLI
   const { program } = require('./commands/cli');
   program.parse(process.argv);
