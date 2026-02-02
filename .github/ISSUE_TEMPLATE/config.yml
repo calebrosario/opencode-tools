@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/calebrosario/opencode-tools/blob/main/docs/README.md
+    about: Check the documentation before creating an issue
+  - name: Discord Community
+    url: https://discord.gg/
+    about: Ask questions in our community chat

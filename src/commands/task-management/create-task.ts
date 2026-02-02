@@ -37,6 +37,10 @@ export const createTaskCommand = new Command('create-task')
       if (task.description) {
         console.log(`   Description: ${task.description}`);
       }
+      
+      console.log('\n💡 Found a bug or have feedback?');
+      console.log('   Report issues: https://github.com/calebrosario/opencode-tools/issues/new');
+      console.log('   Feature requests: https://github.com/calebrosario/opencode-tools/issues/new?template=feature_request.md\n');
     } catch (error: any) {
       console.error('❌ Failed to create task:', error.message);
       process.exit(1);
