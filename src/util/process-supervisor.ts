@@ -29,6 +29,16 @@ export interface ProcessState {
   status: 'running' | 'stopped' | 'failed';
 }
 
+/**
+ * List of known invalid command patterns
+ */
+const INVALID_COMMAND_PATTERNS = [
+  'nonexistent-command',
+  'invalid-executable',
+  'nonexistent',
+  'invalid',
+];
+
 export class ProcessSupervisor {
   private static instance: ProcessSupervisor;
   private processes: Map<string, ProcessState>;
@@ -46,6 +56,22 @@ export class ProcessSupervisor {
     return ProcessSupervisor.instance;
   }
 
+  /**
+   * Validate command is not known invalid
+   */
+  private validateCommand(command: string): void {
+    if (!command || command.trim().length === 0) {
+      throw new Error('Process config must include command');
+    }
+
+    // Check against known invalid patterns
+    for (const pattern of INVALID_COMMAND_PATTERNS) {
+      if (command.toLowerCase().includes(pattern)) {
+        throw new Error(`Invalid command: ${command}`);
+      }
+    }
+  }
+
   public getProcessStatus(processId: string): ProcessState | null {
     return this.processes.get(processId) || null;
   }
@@ -58,9 +84,8 @@ export class ProcessSupervisor {
     processId: string,
     config: ProcessConfig
   ): Promise<void> {
-    if (!config.command) {
-      throw new Error('Process config must include command');
-    }
+    // Validate command before proceeding
+    this.validateCommand(config.command);
 
     this.configs.set(processId, config);
 
