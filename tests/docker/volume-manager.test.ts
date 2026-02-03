@@ -2,18 +2,26 @@
 // Week 11, Task 11.7: Volume Manager Test Suite
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import Docker from 'dockerode';
+import { dockerHelper } from '../util/docker-helper';
+import { dockerHelper } from '../util/docker-helper';
 import { VolumeManager, getVolumeManager } from '../../src/docker/volume-manager';
 import { OpenCodeError } from '../../src/types';
 
 describe('VolumeManager', () => {
   let docker: Docker;
   let volumeManager: VolumeManager;
+  if (!dockerHelper.isAvailable()) {
+  let docker: Docker;
+  if (!dockerHelper.isAvailable()) {
+    return;
+  }
+  }
+
   const testTaskId = 'test-task-123';
 
   beforeEach(async () => {
-    docker = new Docker({ socketPath: '/var/run/docker.sock' });
-    volumeManager = getVolumeManager(docker);
+    docker = dockerHelper.createClient();
+    volumeManager = getVolumeManager(dockerHelper.createClient());
 
     // Cleanup any existing test volumes
     try {
