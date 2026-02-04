@@ -55,8 +55,24 @@ export class DatabaseManager {
     if (!this.db) return;
 
     // Tasks table (Phase 2 - MVP Core)
-    // Registry table (Phase 2 - MVP Core)
-    // Events table (Phase 1 - Critical Edge Cases)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        status TEXT NOT NULL,
+        owner TEXT,
+        metadata TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `);
+
+    // Create indexes for better query performance
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_tasks_owner ON tasks(owner);
+      CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
+    `);
 
     logger.info('Database tables initialized');
   }

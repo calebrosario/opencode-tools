@@ -63,4 +63,8 @@ function displayTasks(tasks: any[], verbose: boolean): void {
     }
     console.log('');
   });
+  
+  console.log('\n💡 Found a bug or have feedback?');
+  console.log('   Report issues: https://github.com/calebrosario/opencode-tools/issues/new');
+  console.log('   Feature requests: https://github.com/calebrosario/opencode-tools/issues/new?template=feature_request.md\n');
 }

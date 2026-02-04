@@ -4,7 +4,7 @@
 import Dockerode from 'dockerode';
 import { logger } from '../util/logger';
 import {
-  DOCKER_SOCKET_PATH,
+  DOCKER_SOCKET,
   DOCKER_CONTAINER_PREFIX,
   CONTAINER_MEMORY_MB,
   CONTAINER_CPU_SHARES,
@@ -20,6 +20,7 @@ import type {
   ContainerStats as DockerContainerStats,
   LogStream,
   PruneResult,
+  PortConfig,
 } from './container-config';
 import Docker from 'dockerode';
 
@@ -95,7 +96,7 @@ export class DockerManager {
 
   private constructor() {
     this.docker = new Dockerode({
-      socketPath: DOCKER_SOCKET_PATH,
+      socketPath: DOCKER_SOCKET,
     });
   }
 
@@ -130,12 +131,12 @@ export class DockerManager {
     } catch (error: unknown) {
       logger.error('❌ Failed to connect to Docker Engine API', {
         error: error instanceof Error ? error.message : String(error),
-        socketPath: DOCKER_SOCKET_PATH,
+        socketPath: DOCKER_SOCKET,
       });
       throw new OpenCodeError(
         'DOCKER_CONNECTION_FAILED',
         'Failed to connect to Docker Engine API',
-        { socketPath: DOCKER_SOCKET_PATH, error }
+        { socketPath: DOCKER_SOCKET, error }
       );
     }
   }
@@ -831,7 +832,7 @@ export class DockerManager {
       image: info.Image,
       status: this.mapContainerStatus(info.State),
       createdAt: new Date(info.Created * 1000),
-      ports: [], // TODO: Parse ports from info
+      ports: this.parseContainerPorts(info),
       networks: Object.keys(info.NetworkSettings?.Networks || {}),
       resources: info.HostConfig
         ? {
@@ -851,6 +852,33 @@ export class DockerManager {
    */
   private mapListedContainerInfo(info: DockerodeContainerInfo): DockerContainerInfo {
     return this.mapContainerInfo(info);
+  }
+
+  /**
+   * Parse port bindings from container inspect info
+   */
+  private parseContainerPorts(info: DockerodeContainerInfo): PortConfig[] {
+    const ports: PortConfig[] = [];
+    
+    const networkSettings = info.NetworkSettings as any;
+    if (networkSettings?.Ports) {
+      for (const [containerPort, portBindings] of Object.entries(networkSettings.Ports)) {
+        const parts = containerPort.split('/');
+        const portStr = parts[0] || containerPort;
+        const protocol = parts[1] as string | undefined;
+        const portNumber = parseInt(portStr, 10);
+        
+        for (const binding of (portBindings || []) as any[]) {
+          ports.push({
+            containerPort: portNumber,
+            hostPort: binding.HostPort ? parseInt(binding.HostPort, 10) : undefined,
+            protocol: (parts[1] || 'tcp') as 'tcp' | 'udp',
+          });
+        }
+      }
+    }
+    
+    return ports;
   }
 
   /**

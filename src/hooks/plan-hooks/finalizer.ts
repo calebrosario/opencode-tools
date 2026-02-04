@@ -1,6 +1,3 @@
-// Plan Finalizer Hook - Phase 2: MVP Core
-// Week 12, Task 12.9: Plan Finalizer Hook
-
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { logger } from '../../util/logger';
@@ -11,25 +8,35 @@ import type { TaskResult } from '../../types/lifecycle';
  * Finalize Plan.md on task completion
  *
  * This hook:
- * 1. Reads existing Plan.md
- * 2. Marks plan as complete
- * 3. Adds summary section
- * 4. Adds next steps
+ * 1. Ensures plan directory exists
+ * 2. Reads existing Plan.md
+ * 3. Adds finalization notes
+ * 4. Saves updated Plan.md
  */
 export function createPlanFinalizerHook(): AfterTaskCompleteHook {
   return async (taskId: string, result: TaskResult) => {
     try {
       const planPath = join(process.cwd(), 'data', 'tasks', taskId, 'Plan.md');
       
-      // Read existing plan
-      const existingPlan = await fs.readFile(planPath, 'utf-8');
-
-      // Append finalization
-      const finalizedPlan = appendFinalization(existingPlan, result);
-
-      // Save finalized plan
+      // Ensure plan directory exists
+      const planDir = join(process.cwd(), 'data', 'tasks', taskId);
+      await fs.mkdir(planDir, { recursive: true });
+      
+      // Read existing plan or create default if missing
+      let existingPlan: string;
+      try {
+        existingPlan = await fs.readFile(planPath, 'utf-8');
+      } catch (readError) {
+        // File doesn't exist yet, create default structure
+        existingPlan = "# Plan: New Task\n**Task ID**: " + taskId + "\n**Status**: pending\n\n## Task Description\n\n## Metadata\n\n\`\`json\n{}\`\`\n## Implementation Notes\n\n*Plan created at task start*\n\n---\n*Last Updated: " + new Date().toISOString() + "*\n";
+      }
+      
+      // Append finalization notes
+      const finalizedPlan = appendFinalizationNotes(existingPlan, result);
+      
+      // Save updated plan
       await fs.writeFile(planPath, finalizedPlan, 'utf-8');
-
+      
       logger.info('Plan finalized', { taskId, result });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -37,48 +44,60 @@ export function createPlanFinalizerHook(): AfterTaskCompleteHook {
         taskId,
         error: errorMessage,
       });
-
-      throw new Error(`Failed to finalize Plan.md: ${errorMessage}`);
+      
+      throw new Error("Failed to finalize Plan.md: " + errorMessage);
     }
   };
-}
+  }
 
-function appendFinalization(planContent: string, result: TaskResult): string {
+function appendExecutionNotes(planContent: string, result: TaskResult): string {
   const timestamp = new Date().toISOString();
-  const successIcon = result.success ? '🎉' : '⚠️';
+  const statusEmoji = result.success ? '✅' : '❌';
   
-  const finalization = `
----
+  const executionNotes = `
+## Execution Summary
 
-## 📋 Plan Summary
+**Status**: ${statusEmoji} ${result.success ? 'Success' : 'Failed'}
+**Completed At**: ${timestamp}
 
-${successIcon} **Plan Status**: ${result.success ? 'Completed Successfully' : 'Completed with Issues'}
+${result.data ? `**Result Data**:
+\`\`\`json
+${JSON.stringify(result.data, null, 2)}
+\`\`\`\`
+` : ''}
 
-**Finalized At**: ${timestamp}
-
-## 📊 Statistics
-
-**Overall Result**: ${result.success ? 'Success' : 'Partial/Failed'}
-
-## 🚀 Next Steps
-
-${result.success ? `
-- [ ] Review task output
-- [ ] Verify acceptance criteria met
-- [ ] Document lessons learned
-- [ ] Clean up resources if needed
-` : `
-- [ ] Review error details
-- [ ] Investigate root cause
-- [ ] Fix reported issues
-- [ ] Re-run task if needed
-- [ ] Update documentation
-`}
+${result.error ? `**Error**: ${result.error}
+` : ''}
 
 ---
 
-*Plan automatically finalized by task lifecycle*
 `;
 
-  return planContent + finalization;
+  return planContent + executionNotes;
+}
+
+function appendFinalizationNotes(planContent: string, result: TaskResult): string {
+  const timestamp = new Date().toISOString();
+  const statusEmoji = result.success ? '✅' : '❌';
+  
+  const finalizationNotes = `
+## Finalization Summary
+
+**Status**: ${statusEmoji} ${result.success ? 'Success' : 'Failed'}
+**Completed At**: ${timestamp}
+
+${result.data ? `**Final Result**:
+\`\`\`json
+${JSON.stringify(result.data, null, 2)}
+\`\`\`\`
+` : ''}
+
+${result.error ? `**Error**: ${result.error}
+` : ''}
+
+---
+
+`;
+
+  return planContent + finalizationNotes;
 }

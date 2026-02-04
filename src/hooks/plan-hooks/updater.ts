@@ -1,6 +1,3 @@
-// Plan Updater Hook - Phase 2: MVP Core
-// Week 12, Task 12.8: Plan Updater Hook
-
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { logger } from '../../util/logger';
@@ -11,9 +8,9 @@ import type { TaskResult } from '../../types/lifecycle';
  * Update Plan.md on task completion
  *
  * This hook:
- * 1. Reads existing Plan.md
- * 2. Appends execution notes
- * 3. Tracks subtasks completed
+ * 1. Ensures plan directory exists
+ * 2. Reads existing Plan.md
+ * 3. Appends execution notes
  * 4. Saves updated Plan.md
  */
 export function createPlanUpdaterHook(): AfterTaskCompleteHook {
@@ -21,15 +18,25 @@ export function createPlanUpdaterHook(): AfterTaskCompleteHook {
     try {
       const planPath = join(process.cwd(), 'data', 'tasks', taskId, 'Plan.md');
       
-      // Read existing plan
-      const existingPlan = await fs.readFile(planPath, 'utf-8');
-
+      // Ensure plan directory exists
+      const planDir = join(process.cwd(), 'data', 'tasks', taskId);
+      await fs.mkdir(planDir, { recursive: true });
+      
+      // Read existing plan or create default if missing
+      let existingPlan: string;
+      try {
+        existingPlan = await fs.readFile(planPath, 'utf-8');
+      } catch (readError) {
+        // File doesn't exist yet, create default structure
+        existingPlan = "# Plan: New Task\n**Task ID**: " + taskId + "\n**Status**: pending\n\n## Task Description\n\n## Metadata\n\n\`\`json\n{}\`\`\n## Implementation Notes\n\n*Plan created at task start*\n\n---\n*Last Updated: " + new Date().toISOString() + "*\n";
+      }
+      
       // Append execution notes
       const updatedPlan = appendExecutionNotes(existingPlan, result);
-
+      
       // Save updated plan
       await fs.writeFile(planPath, updatedPlan, 'utf-8');
-
+      
       logger.info('Plan file updated', { taskId, result });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -37,30 +44,60 @@ export function createPlanUpdaterHook(): AfterTaskCompleteHook {
         taskId,
         error: errorMessage,
       });
-
-      throw new Error(`Failed to update Plan.md: ${errorMessage}`);
+      
+      throw new Error("Failed to update Plan.md: " + errorMessage);
     }
   };
-}
+  }
 
 function appendExecutionNotes(planContent: string, result: TaskResult): string {
   const timestamp = new Date().toISOString();
   const statusEmoji = result.success ? '✅' : '❌';
   
   const executionNotes = `
-
 ## Execution Summary
 
 **Status**: ${statusEmoji} ${result.success ? 'Success' : 'Failed'}
 **Completed At**: ${timestamp}
 
-${result.data ? `**Result Data**:\n\`\`\`json\n${JSON.stringify(result.data, null, 2)}\n\`\`\`\n` : ''}
+${result.data ? `**Result Data**:
+\`\`\`json
+${JSON.stringify(result.data, null, 2)}
+\`\`\`\`
+` : ''}
 
-${result.error ? `**Error**: ${result.error}\n` : ''}
+${result.error ? `**Error**: ${result.error}
+` : ''}
 
 ---
 
 `;
 
   return planContent + executionNotes;
+}
+
+function appendFinalizationNotes(planContent: string, result: TaskResult): string {
+  const timestamp = new Date().toISOString();
+  const statusEmoji = result.success ? '✅' : '❌';
+  
+  const finalizationNotes = `
+## Finalization Summary
+
+**Status**: ${statusEmoji} ${result.success ? 'Success' : 'Failed'}
+**Completed At**: ${timestamp}
+
+${result.data ? `**Final Result**:
+\`\`\`json
+${JSON.stringify(result.data, null, 2)}
+\`\`\`\`
+` : ''}
+
+${result.error ? `**Error**: ${result.error}
+` : ''}
+
+---
+
+`;
+
+  return planContent + finalizationNotes;
 }

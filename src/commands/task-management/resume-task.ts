@@ -30,6 +30,10 @@ export const resumeTaskCommand = new Command('resume-task')
       console.log(`   Task ID: ${task.id}`);
       console.log(`   Status: ${task.status}`);
       console.log(`   Agent: ${options.agent || 'system'}`);
+      
+      console.log('\n💡 Found a bug or have feedback?');
+      console.log('   Report issues: https://github.com/calebrosario/opencode-tools/issues/new');
+      console.log('   Feature requests: https://github.com/calebrosario/opencode-tools/issues/new?template=feature_request.md\n');
     } catch (error: any) {
       console.error('❌ Failed to resume task:', error.message);
       process.exit(1);

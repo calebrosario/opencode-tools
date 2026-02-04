@@ -1,6 +1,6 @@
 import Dockerode from 'dockerode';
 import { logger } from './logger';
-import { DOCKER_SOCKET_PATH, DOCKER_NETWORK_PREFIX } from '../config';
+import { DOCKER_SOCKET, DOCKER_NETWORK_PREFIX } from '../config';
 import { OpenCodeError } from '../types';
 
 export interface NetworkConfig {
@@ -30,7 +30,7 @@ export class NetworkIsolator {
 
   private constructor() {
     this.docker = new Dockerode({
-      socketPath: DOCKER_SOCKET_PATH,
+      socketPath: DOCKER_SOCKET,
     });
   }
 

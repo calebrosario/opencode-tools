@@ -9,7 +9,7 @@ import { taskLifecycleHooks } from '../../src/hooks/task-lifecycle';
 
 describe('End-to-End Workflow Tests', () => {
   beforeAll(async () => {
-    await taskRegistry.initialize();
+\n  if (!dockerHelper.isAvailable()) {\n    return;\n  }\n\n  if (!dockerHelper.isAvailable()) {\n    return;\n  }\n    await taskRegistry.initialize();
   });
 
   afterAll(async () => {

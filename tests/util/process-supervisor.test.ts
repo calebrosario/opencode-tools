@@ -1,4 +1,4 @@
-import { ProcessSupervisor } from '../process-supervisor';
+import { ProcessSupervisor } from '../../src/util/process-supervisor';
 
 describe('ProcessSupervisor', () => {
   let supervisor: ProcessSupervisor;

@@ -103,19 +103,19 @@ await taskLifecycleHooks.executeAfterTaskStart(taskId, agentId);
 
 ```
 ┌─────────────────────────────────────────┐
-│  Acquire Lock Failed?              │
-└──────────────┬────────────────────────┘
+│  Acquire Lock Failed?                   │
+└──────────────┬──────────────────────────┘
                │
        ┌───────┼───────┐
        │       │       │
       NO      YES     YES (retries > max)
        │       │       │
-       │       │       ┌───▼───┐
+       │       │       ┌───▼─────┐
        │       │       │         │
    Retry   Return   Give Up  Acquire
    │       │       │   Error    Lock     │
    │       │       │             │       │
-       └───┴───┴───┴─────────▼─────────┘
+   └───────┴───┴───┴─────────────▼───────┘
                │
                ▼
           Return LockInfo
@@ -125,19 +125,19 @@ await taskLifecycleHooks.executeAfterTaskStart(taskId, agentId);
 
 ```
 ┌─────────────────────────────────────────┐
-│  Task Failed?                      │
-└──────────────┬────────────────────────┘
+│  Task Failed?                           │
+└──────────────┬──────────────────────────┘
                │
        ┌───────┼───────┐
        │       │       │
       NO      YES     YES (has checkpoint)
        │       │       │
-       │       │       ┌───▼───┐
+       │       │       ┌───▼─────┐
        │       │       │         │
       Return  Check  Restore  Return Error
-      │       │       │   Task    │       │
+       │       │       │   Task   │       │
        │       │       │          │
-       └───┴───┴───┴──────────┘
+       └───────┴───────┴──────────┴───────┘
                │
                ▼
           Return Result/Error
@@ -172,15 +172,15 @@ Complex systems are composed of smaller, testable state machines:
 
 ```
 ┌─────────────────────────────────────────┐
-│         TaskLifecycle               │
-│  ┌───────────┬───────────┐      │
-│  │             │           │      │
-│  ▼             ▼           ▼      │
-│ LockManager    Persistence  Hooks      │
-│  └──────┬──────┴──────┬──────┘      │
-│         │               │                │
-│         └───────────────┴────────────────┘         │
-│                                              │
+│         TaskLifecycle                   │
+│  ┌─────────────┬─────────────┐          │
+│  │             │             │          │
+│  ▼             ▼             ▼          │
+│ LockManager    Persistence  Hooks       │
+│  └──────┬──────┴──────┬──────┘          │
+│         │             │                 │
+│         └─────────────┴─────────────────┘         │
+│                                           │
 └───────────────────────────────────────────┘
 ```
 

@@ -9,7 +9,7 @@ describe('MCP Server Integration', () => {
   let server: any;
 
   beforeAll(async () => {
-    server = MCPServerEnhanced.getInstance();
+\n  if (!dockerHelper.isAvailable()) {\n    return;\n  }\n    server = MCPServerEnhanced.getInstance();
     await server.initialize();
     await server.start();
   });

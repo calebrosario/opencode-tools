@@ -45,8 +45,8 @@ stateDiagram-v2
 
 ```
 ┌─────────────────────┐
-│  Acquire Lock      │
-│  Request          │
+│  Acquire Lock       │
+│  Request            │
 └─────────┬───────────┘
           │
           ▼
@@ -60,7 +60,7 @@ stateDiagram-v2
 Acquire Lock        Acquire Lock         Wait or       Fail
                     (with retry)        fail
     │                  │                  │             │
-    ▼                  ▼                  └─────────────┴────────┐
+    ▼                  ▼                  └─────────────┴──────┐
     │                                                          │
     ▼                                                          ▼
   Success                                                 Retry/Limit
@@ -74,8 +74,8 @@ Acquire Lock        Acquire Lock         Wait or       Fail
 
 ```
 ┌─────────────────────┐
-│  Release Lock      │
-│  Request          │
+│  Release Lock       │
+│  Request            │
 └─────────┬───────────┘
           │
           ▼

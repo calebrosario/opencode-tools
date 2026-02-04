@@ -1,4 +1,4 @@
-import { ResourceMonitor, ResourceLimits } from '../resource-monitor';
+import { ResourceMonitor, ResourceLimits } from '../../src/util/resource-monitor';
 
 describe('ResourceMonitor', () => {
   let monitor: ResourceMonitor;

@@ -3,7 +3,7 @@
 
 import Dockerode from 'dockerode';
 import { logger } from '../util/logger';
-import { DOCKER_SOCKET_PATH } from '../config';
+import { DOCKER_SOCKET } from '../config';
 
 export class DockerManager {
   private docker: Dockerode;
@@ -11,7 +11,7 @@ export class DockerManager {
 
   private constructor() {
     this.docker = new Dockerode({
-      socketPath: DOCKER_SOCKET_PATH,
+      socketPath: DOCKER_SOCKET,
     });
   }
 
@@ -34,7 +34,7 @@ export class DockerManager {
     } catch (error: unknown) {
       logger.error('❌ Failed to connect to Docker Engine API', {
         error: error instanceof Error ? error.message : String(error),
-        socketPath: DOCKER_SOCKET_PATH,
+        socketPath: DOCKER_SOCKET,
       });
       throw error;
     }

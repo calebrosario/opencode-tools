@@ -5,22 +5,22 @@
 ### Operations
 ```
 ┌─────────────────────────────────────────┐
-│         saveState()              │
-│  ┌────────────────────────┐       │
-│  │ 1. Generate Checksum  │       │
-│  │ 2. Write to .tmp      │       │
-│  │ 3. Atomic Rename      │       │
-│  └────────────────────────┘       │
-└─────────┬──────────────────────────────┘
+│         saveState()                     │
+│  ┌────────────────────────┐             │
+│  │ 1. Generate Checksum   │             │
+│  │ 2. Write to .tmp       │             │
+│  │ 3. Atomic Rename       │             │
+│  └────────────────────────┘             │
+└─────────┬───────────────────────────────┘
           │
           ▼
 ┌─────────────────────────────────────────┐
-│         loadState()               │
-│  ┌────────────────────────┐       │
-│  │ 1. Read File        │       │
-│  │ 2. Validate Checksum│       │
-│  │ 3. Return State     │       │
-│  └────────────────────────┘       │
+│         loadState()                     │
+│  ┌────────────────────────┐             │
+│  │ 1. Read File           │             │
+│  │ 2. Validate Checksum   │             │
+│  │ 3. Return State        │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 ```
 
@@ -43,36 +43,36 @@
 ### Operations
 ```
 ┌─────────────────────────────────────────┐
-│         appendLog()              │
-│  ┌────────────────────────┐       │
-│  │ 1. Add Timestamp     │       │
-│  │ 2. Append JSONL Line│       │
-│  │ 3. Atomic Write      │       │
-│  └────────────────────────┘       │
+│         appendLog()                     │
+│  ┌────────────────────────┐             │
+│  │ 1. Add Timestamp       │             │
+│  │ 2. Append JSONL Line   │             │
+│  │ 3. Atomic Write        │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│         batchAppendLogs()         │
-│  ┌────────────────────────┐       │
-│  │ 1. Batch Entries    │       │
-│  │ 2. Join with \n     │       │
-│  │ 3. Single Write      │       │
-│  │    (35x faster)       │       │
-│  └────────────────────────┘       │
+│         batchAppendLogs()               │
+│  ┌────────────────────────┐             │
+│  │ 1. Batch Entries       │             │
+│  │ 2. Join with \n        │             │
+│  │ 3. Single Write        │             │
+│  │    (35x faster)        │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│         loadLogs()               │
-│  ┌────────────────────────┐       │
-│  │ 1. Read File        │       │
-│  │ 2. Parse JSONL      │       │
-│  │ 3. Apply Filters     │       │
-│  │    - limit         │       │
-│  │    - offset         │       │
-│  │    - level          │       │
-│  │    - date range    │       │
-│  │ 4. Return Array    │       │
-│  └────────────────────────┘       │
+│         loadLogs()                      │
+│  ┌────────────────────────┐             │
+│  │ 1. Read File           │             │
+│  │ 2. Parse JSONL         │             │
+│  │ 3. Apply Filters       │             │
+│  │    - limit             │             │
+│  │    - offset            │             │
+│  │    - level             │             │
+│  │    - date range        │             │
+│  │ 4. Return Array        │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 ```
 
@@ -86,22 +86,22 @@
 ### Operations
 ```
 ┌─────────────────────────────────────────┐
-│         appendDecision()          │
-│  ┌────────────────────────┐       │
-│  │ 1. Format Markdown  │       │
-│  │ 2. Append with \n\n │       │
-│  │ 3. Atomic Write      │       │
-│  └────────────────────────┘       │
+│         appendDecision()                │
+│  ┌────────────────────────┐             │
+│  │ 1. Format Markdown     │             │
+│  │ 2. Append with \n\n    │             │
+│  │ 3. Atomic Write        │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│         loadDecisions()          │
-│  ┌────────────────────────┐       │
-│  │ 1. Read Markdown     │       │
-│  │ 2. Split by \n\n   │       │
-│  │ 3. Parse Entries    │       │
-│  │ 4. Return Array    │       │
-│  └────────────────────────┘       │
+│         loadDecisions()                 │
+│  ┌────────────────────────┐             │
+│  │ 1. Read Markdown       │             │
+│  │ 2. Split by \n\n       │             │
+│  │ 3. Parse Entries       │             │
+│  │ 4. Return Array        │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 ```
 
@@ -121,48 +121,48 @@ Based on recent task history, I'm implementing a caching layer to improve perfor
 ### Operations
 ```
 ┌─────────────────────────────────────────┐
-│         createCheckpoint()         │
-│  ┌────────────────────────┐       │
-│  │ 1. Create Dir        │       │
-│  │ 2. Generate ID      │       │
-│  │ 3. Save State       │       │
-│  │ 4. Save Logs        │       │
-│  │ 5. Create Manifest   │       │
-│  │ 6. Return ID        │       │
-│  └────────────────────────┘       │
+│         createCheckpoint()              │
+│  ┌────────────────────────┐             │
+│  │ 1. Create Dir          │             │
+│  │ 2. Generate ID         │             │
+│  │ 3. Save State          │             │
+│  │ 4. Save Logs           │             │
+│  │ 5. Create Manifest     │             │
+│  │ 6. Return ID           │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│         restoreCheckpoint()         │
-│  ┌────────────────────────┐       │
-│  │ 1. Verify Exists    │       │
-│  │ 2. Load State       │       │
-│  │ 3. Save to Active   │       │
-│  │ 4. Restore Logs     │       │
-│  │ 5. Append to Current│       │
-│  └────────────────────────┘       │
+│         restoreCheckpoint()             │
+│  ┌────────────────────────┐             │
+│  │ 1. Verify Exists       │             │
+│  │ 2. Load State          │             │
+│  │ 3. Save to Active      │             │
+│  │ 4. Restore Logs        │             │
+│  │ 5. Append to Current   │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│         listCheckpoints()          │
-│  ┌────────────────────────┐       │
-│  │ 1. Read Checkpoints│       │
-│  │ 2. Load Manifests   │       │
-│  │ 3. Sort by Time    │       │
-│  │ 4. Return Array    │       │
-│  └────────────────────────┘       │
+│         listCheckpoints()               │
+│  ┌────────────────────────┐             │
+│  │ 1. Read Checkpoints    │             │
+│  │ 2. Load Manifests      │             │
+│  │ 3. Sort by Time        │             │
+│  │ 4. Return Array        │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│         cleanup()                 │
-│  ┌────────────────────────┐       │
-│  │ 1. Delete All      │       │
-│  │    - state.json    │       │
-│  │    - logs.jsonl    │       │
-│  │    - decisions.md  │       │
-│  │    - checkpoints/  │       │
-│  │ 2. Remove Dir      │       │
-│  └────────────────────────┘       │
+│         cleanup()                       │
+│  ┌────────────────────────┐             │
+│  │ 1. Delete All          │             │
+│  │    - state.json        │             │
+│  │    - logs.jsonl        │             │
+│  │    - decisions.md      │             │
+│  │    - checkpoints/      │             │
+│  │ 2. Remove Dir          │             │
+│  └────────────────────────┘             │
 └─────────────────────────────────────────┘
 ```
 
@@ -189,7 +189,7 @@ checkpoints/{taskId}/
 ```
 data/tasks/{taskId}/
 ├── state.json              # Layer 1: Current state (fast access)
-├── logs.jsonl             # Layer 2: Audit trail (append-only)
+├── logs.jsonl              # Layer 2: Audit trail (append-only)
 ├── decisions.md            # Layer 3: Agent decisions (human-readable)
 └── checkpoints/            # Layer 4: Snapshots (point-in-time recovery)
     ├── checkpoint_1706789012345/

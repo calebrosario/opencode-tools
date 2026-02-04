@@ -41,7 +41,7 @@ export class StateValidator {
    */
   public generateChecksum(data: any): string {
     if (!data || typeof data !== 'object' || data === null) {
-      return '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
+      return '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
     }
     
     const jsonString = JSON.stringify(data, Object.keys(data).sort());
@@ -87,7 +87,7 @@ export class StateValidator {
     const checksumValid = currentChecksum === snapshot.checksum;
 
     if (!checksumValid) {
-      errors.push(`Checksum mismatch: expected \${snapshot.checksum}, got \${currentChecksum}`);
+      errors.push(`Checksum mismatch: expected ${snapshot.checksum}, got ${currentChecksum}`);
       recoveryOptions.push('restore-from-jsonl');
       recoveryOptions.push('use-last-known-good-state');
     }
@@ -117,7 +117,7 @@ export class StateValidator {
       }
     } catch (error: unknown) {
       dataIntegrity = false;
-      errors.push(`Data validation error: \${error instanceof Error ? error.message : String(error)}`);
+      errors.push(`Data validation error: ${error instanceof Error ? error.message : String(error)}`);
       recoveryOptions.push('emergency-state-reset');
     }
 
@@ -171,7 +171,7 @@ export class StateValidator {
       });
       throw new OpenCodeError(
         'STATE_SAVE_FAILED',
-        `Failed to save state to \${filePath}`,
+        `Failed to save state to ${filePath}`,
         { filePath, version }
       );
     }
@@ -260,11 +260,15 @@ export class StateValidator {
             logger.warn('Initializing empty state due to corruption', { filePath });
             return {};
 
+          case 'emergency-state-reset':
+            logger.warn('Emergency state reset performed', { filePath });
+            return {};
+
           default:
             continue;
         }
       } catch (error: unknown) {
-        logger.warn(`Recovery option '\${option}' failed`, {
+        logger.warn(`Recovery option '${option}' failed`, {
           filePath,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -302,7 +306,7 @@ export class StateValidator {
    * @returns Backup state
    */
   private restoreFromBackup(filePath: string): Record<string, any> | null {
-    const backupPath = `\${filePath}.backup`;
+    const backupPath = `${filePath}.backup`;
 
     if (existsSync(backupPath)) {
       logger.info('Attempting backup restoration', { filePath, backupPath });
@@ -344,10 +348,10 @@ export class StateValidator {
    */
   public createBackup(filePath: string): void {
     try {
-      const backupPath = `\${filePath}.backup`;
+      const backupPath = `${filePath}.backup`;
       
       if (existsSync(filePath)) {
-        const content = readFileSync(filePath);
+        const content = readFileSync(filePath, 'utf8');
         writeFileSync(backupPath, content);
         logger.debug('State backup created', { filePath, backupPath });
       }

@@ -7,7 +7,7 @@ config();
 // Configuration schema
 const configSchema = z.object({
   // Docker Configuration
-  DOCKER_SOCKET_PATH: z.string().default('/var/run/docker.sock'),
+  DOCKER_SOCKET: z.string().default('/var/run/docker.sock'),
   DOCKER_NETWORK_PREFIX: z.string().default('opencode_'),
   DOCKER_CONTAINER_PREFIX: z.string().default('opencode_'),
 
@@ -44,7 +44,7 @@ const configSchema = z.object({
 
 // Parse and validate configuration
 export const CONFIG = configSchema.parse({
-  DOCKER_SOCKET_PATH: process.env.DOCKER_SOCKET_PATH,
+  DOCKER_SOCKET: process.env.DOCKER_SOCKET,
   DOCKER_NETWORK_PREFIX: process.env.DOCKER_NETWORK_PREFIX,
   DOCKER_CONTAINER_PREFIX: process.env.DOCKER_CONTAINER_PREFIX,
   DATABASE_PATH: process.env.DATABASE_PATH,
@@ -69,7 +69,7 @@ export const CONFIG = configSchema.parse({
 
 // Export individual config values for convenience
 export const {
-  DOCKER_SOCKET_PATH,
+  DOCKER_SOCKET,
   DOCKER_NETWORK_PREFIX,
   DOCKER_CONTAINER_PREFIX,
   DATABASE_PATH,

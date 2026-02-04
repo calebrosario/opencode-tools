@@ -7,8 +7,15 @@ import { Task, TaskStatus } from '../../src/types';
 
 describe('TaskRegistry', () => {
   beforeAll(async () => {
-    // Initialize registry
-    await taskRegistry.initialize();
+    // Auto-initialization happens on first getInstance() call
+    // No manual initialize() needed
+  });
+
+  beforeEach(async () => {
+    // Clear database before each test to avoid duplicate ID errors
+    const dbManager = await import('../../src/persistence/database').then(m => m.DatabaseManager.getInstance());
+    const db = dbManager.getDatabase();
+    db.exec('DELETE FROM tasks');
   });
 
   afterAll(async () => {

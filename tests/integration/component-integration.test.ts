@@ -9,9 +9,9 @@ import { lockManager } from '../../src/util/lock-manager';
 import { taskLifecycleHooks } from '../../src/hooks/task-lifecycle';
 import { TOOL_DEFINITIONS } from '../../src/mcp/tools';
 
-describe('Component Integration Tests', () => {
+\n  if (!dockerHelper.isAvailable()) {\n    return;\n  }\ndescribe('Component Integration Tests', () => {
   const testTaskId = 'integration-test-task';
-  const testAgentId = 'integration-test-agent';
+\n  if (!dockerHelper.isAvailable()) {\n    return;\n  }\n  const testAgentId = 'integration-test-agent';
 
   beforeAll(async () => {
     await taskRegistry.initialize();
