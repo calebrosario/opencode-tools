@@ -3,9 +3,9 @@
 ## Project Status
 
 **Branch**: `sisyphus_GLM-4.7/setup-drizzle-migrations-testing`
-**Last Commit**: `fca3af2` "fix: Fix critical production issues identified in PR review"
-**Date**: Fri Feb 6, 2026
-**Context Used**: 66% (handoff continuation session)
+**Last Commit**: `a106be1` "fix: Export taskRegistry singleton instance"
+**Date**: Thu Feb 5, 2026
+**Context Used**: 132,363 / 200,000 tokens (66%)
 
 ---
 
@@ -109,11 +109,10 @@
 ### What's Pending
 
 - ✅ PostgreSQL test database setup configured (docker-compose.test.yml, .env.test, test:pg script)
-- ✅ PostgreSQL database schema defined with pgEnum constraints for task status
-- ✅ PostgreSQL migrations generated (drizzle.config.ts, migrations/)
-- ⏳ PostgreSQL migrations not yet applied to running database (tables exist from prior session)
-- ⏳ Better-sqlite3 dependency still in package.json (removed from production code only)
-- ⏳ Database indexes defined (pending: apply via migration when Drizzle API confirmed)
+- ❌ PostgreSQL server not running (need to start with `docker compose -f docker-compose.test.yml up -d`)
+- ❌ Migrations not run (no database running to migrate to)
+- ❌ Tests not updated for PostgreSQL (still target SQLite)
+- ❌ Better-sqlite3 dependency not removed from package.json
 
 ---
 
