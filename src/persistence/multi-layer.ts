@@ -11,7 +11,6 @@ export interface TaskState {
   status: string;
   data: Record<string, any>;
   lastUpdated: string;
-  checksum?: string;
 }
 
 export interface LogEntry {
@@ -61,13 +60,6 @@ export class MultiLayerPersistence {
     return MultiLayerPersistence.instance;
   }
 
-  /**
-   * Reset singleton instance (for testing)
-   */
-  public static resetInstance(): void {
-    MultiLayerPersistence.instance = undefined as any;
-  }
-
   // Layer 1: state.json - Current task state (fast access)
 
   public async saveState(taskId: string, state: TaskState): Promise<void> {
@@ -108,15 +100,11 @@ export class MultiLayerPersistence {
       const data = await fs.readFile(statePath, "utf-8");
       const state = JSON.parse(data) as TaskState;
 
-      // Validate checksum by recalculating and comparing
-      const savedChecksum = state.checksum;
-      const calculatedChecksum = stateValidator.generateChecksum(
-        JSON.stringify({ ...state, checksum: undefined }),
-      );
-
-      if (savedChecksum !== calculatedChecksum) {
+      // Validate checksum
+      const validation = stateValidator.validateSnapshot(data as any);
+      if (!validation.isValid) {
         throw new Error(
-          `State checksum mismatch: expected ${savedChecksum}, got ${calculatedChecksum}`,
+          `State validation failed: ${validation.errors.join(", ")}`,
         );
       }
 
@@ -136,8 +124,6 @@ export class MultiLayerPersistence {
     const logsPath = this.getTaskPath(taskId, "logs.jsonl");
 
     try {
-      await fs.mkdir(dirname(logsPath), { recursive: true });
-
       const logLine = JSON.stringify({
         ...entry,
         timestamp: entry.timestamp || new Date().toISOString(),
@@ -156,8 +142,6 @@ export class MultiLayerPersistence {
     const logsPath = this.getTaskPath(taskId, "logs.jsonl");
 
     try {
-      await fs.mkdir(dirname(logsPath), { recursive: true });
-
       const logLines = entries
         .map((entry) => {
           return JSON.stringify({
@@ -166,6 +150,7 @@ export class MultiLayerPersistence {
           });
         })
         .join("\n");
+
       await fs.appendFile(logsPath, logLines + "\n", "utf-8");
 
       logger.info("Batch logs appended", { taskId, count: entries.length });
@@ -232,12 +217,11 @@ export class MultiLayerPersistence {
     const decisionsPath = this.getTaskPath(taskId, "decisions.md");
 
     try {
+      // Ensure task directory exists
       await fs.mkdir(dirname(decisionsPath), { recursive: true });
 
       const decisionEntry = this.formatDecision(decision);
-      await fs.appendFile(decisionsPath, decisionEntry, "utf-8");
-
-      logger.info("Decision appended", { taskId });
+      await fs.appendFile(decisionsPath, decisionEntry + "\n\n", "utf-8");
     } catch (error) {
       logger.error("Failed to append decision", { taskId, error });
       throw error;
@@ -249,18 +233,11 @@ export class MultiLayerPersistence {
 
     try {
       const data = await fs.readFile(decisionsPath, "utf-8");
-      const trimmedData = data.trim();
+      const entries = data
+        .split("\n\n")
+        .filter((entry) => entry.trim().length > 0);
 
-      if (trimmedData.length === 0) {
-        return [];
-      }
-
-      const entries = trimmedData.split(/^## /m);
-      const decisionEntries = entries
-        .map((entry) => entry.trim())
-        .filter((entry) => entry.length > 0);
-
-      return decisionEntries.map((entry) => this.parseDecision("## " + entry));
+      return entries.map((entry) => this.parseDecision(entry));
     } catch (error) {
       if ((error as any).code === "ENOENT") {
         return [];
@@ -386,8 +363,6 @@ export class MultiLayerPersistence {
     try {
       const dirs = await fs.readdir(checkpointsPath);
       const checkpoints: Checkpoint[] = [];
-      const failedCheckpoints: Array<{ checkpointId: string; error: unknown }> =
-        [];
 
       for (const dir of dirs) {
         try {
@@ -404,25 +379,11 @@ export class MultiLayerPersistence {
             manifest,
           });
         } catch (error) {
-          const errorObj =
-            error instanceof Error ? error.message : String(error);
-          failedCheckpoints.push({
-            checkpointId: dir,
-            error: errorObj,
-          });
-          logger.error("Failed to read checkpoint manifest", {
+          logger.warn("Failed to read checkpoint manifest", {
             taskId,
             checkpointId: dir,
-            error: errorObj,
           });
         }
-      }
-
-      // Throw aggregate error if any checkpoint failed to load
-      if (failedCheckpoints.length > 0) {
-        throw new Error(
-          `Failed to read ${failedCheckpoints.length}/${dirs.length} checkpoint manifests: ${failedCheckpoints.map((f) => f.checkpointId).join(", ")}`,
-        );
       }
 
       return checkpoints.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
@@ -464,74 +425,30 @@ export class MultiLayerPersistence {
 
   private formatDecision(decision: AgentDecision): string {
     const timestamp = decision.timestamp || new Date().toISOString();
-    const metadataLine = decision.metadata
-      ? `**Metadata**: \`${JSON.stringify(decision.metadata)}\``
-      : "";
-
     return `## ${timestamp}
 **Agent**: ${decision.agentId}
 **Decision**: ${decision.decision}
 
 ${decision.reasoning}
-${metadataLine}
-`;
+
+${decision.metadata ? `**Metadata**: \`${JSON.stringify(decision.metadata)}\`` : ""}`;
   }
 
   private parseDecision(text: string): AgentDecision {
+    // Simple parsing - in production, use proper markdown parser
     const lines = text.split("\n");
-
     const agentMatch = lines.find((l) => l.startsWith("**Agent**:"));
     const decisionMatch = lines.find((l) => l.startsWith("**Decision**:"));
 
-    const decisionTimestamp =
-      (lines[0] || "").replace("## ", "") || new Date().toISOString();
-
-    const agentId = agentMatch?.replace("**Agent**:", "")?.trim() || "";
-    const decision = decisionMatch?.replace("**Decision**:", "")?.trim() || "";
-
-    const decisionLineIndex = decisionMatch ? lines.indexOf(decisionMatch) : -1;
-
-    let reasoning = "";
-    let metadata = "";
-
-    if (decisionLineIndex > -1) {
-      const afterDecision = decisionLineIndex + 1;
-
-      let beforeMetadata = -1;
-      for (let i = afterDecision + 1; i < lines.length; i++) {
-        const line = lines[i] as string;
-        if (line.startsWith("**Metadata**")) {
-          beforeMetadata = i;
-          metadata =
-            line.replace("**Metadata**:", "").replace(/\`/g, "").trim() || "";
-          break;
-        }
-      }
-
-      const end = beforeMetadata > -1 ? beforeMetadata : lines.length;
-      reasoning = lines
-        .slice(afterDecision + 1, end)
-        .join("\n")
-        .trim();
-    }
-
-    const result: AgentDecision = {
-      timestamp: decisionTimestamp,
-      agentId,
-      decision,
-      reasoning,
+    return {
+      timestamp:
+        (lines[0] || "").replace("## ", "") || new Date().toISOString(),
+      agentId: agentMatch?.split(":** ")[1] || "",
+      decision: decisionMatch?.split(":** ")[1] || "",
+      reasoning: lines.slice(4, lines.length - 2).join("\n"),
     };
-
-    if (metadata) {
-      try {
-        result.metadata = JSON.parse(metadata);
-      } catch (error) {
-        // Invalid JSON, ignore metadata
-      }
-    }
-
-    return result;
   }
 }
 
+// Export singleton instance
 export const multiLayerPersistence = MultiLayerPersistence.getInstance();
