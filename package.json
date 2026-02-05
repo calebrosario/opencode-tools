@@ -14,8 +14,9 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
     "check-docker": "node -e \"const Docker = require('dockerode'); const docker = new Docker(); docker.info().then(() => console.log('✅ Connected to Docker Engine API')).catch(err => { console.error('❌ Docker connection failed:', err.message); process.exit(1); })\"",
-    "db:generate": "drizzle-kit generate:pg",
-    "db:migrate": "drizzle-kit push:pg",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
   "keywords": [
