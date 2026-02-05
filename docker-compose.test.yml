@@ -8,6 +8,7 @@ services:
       POSTGRES_USER: opencode_test
       POSTGRES_PASSWORD: opencode_test_password
       POSTGRES_DB: opencode_test
+      DATABASE_URL: postgresql://opencode_test:opencode_test_password@localhost:5432/opencode_test
     ports:
       - "5432:5432"
     volumes:
