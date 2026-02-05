@@ -9,6 +9,7 @@ import * as schema from "../persistence/schema";
 import type { TaskSelect } from "../persistence/schema";
 
 export class TaskRegistry {
+  // Singleton instance for backward compatibility with existing code imports
   private static instance: TaskRegistry;
   private db: ReturnType<typeof DatabaseManager.prototype.getDatabase> | null =
     null;
@@ -326,13 +327,17 @@ export class TaskRegistry {
       status: dbRow.status as TaskStatus,
       owner: dbRow.owner || undefined,
       metadata: (dbRow.metadata as any) || undefined,
-      createdAt: dbRow.createdAt instanceof Date
-        ? dbRow.createdAt.toISOString()
-        : new Date(String(dbRow.createdAt)).toISOString(),
-      updatedAt: dbRow.updatedAt instanceof Date
-        ? dbRow.updatedAt.toISOString()
-        : new Date(String(dbRow.updatedAt)).toISOString(),
+      createdAt:
+        dbRow.createdAt instanceof Date
+          ? dbRow.createdAt.toISOString()
+          : new Date(String(dbRow.createdAt)).toISOString(),
+      updatedAt:
+        dbRow.updatedAt instanceof Date
+          ? dbRow.updatedAt.toISOString()
+          : new Date(String(dbRow.updatedAt)).toISOString(),
     };
   }
 }
-}
+
+// Export singleton instance for backward compatibility
+export const taskRegistry = TaskRegistry.getInstance();
