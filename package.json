@@ -10,7 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:pg": "dotenv -e .env.test -- jest",
+    "test:pg": "DOTENV_CONFIG_PATH=.env.test jest",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
@@ -69,6 +69,9 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
+    "setupFiles": [
+      "dotenv/config"
+    ],
     "collectCoverageFrom": [
       "src/**/*.ts",
       "!src/**/*.d.ts",
