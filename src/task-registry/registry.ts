@@ -110,13 +110,13 @@ export class TaskRegistry {
     }
 
     try {
-      const [result] = await this.db
+      const results = await this.db
         .select()
         .from(schema.tasks)
         .where(eq(schema.tasks.id, id))
         .limit(1);
 
-      return result.length > 0 ? this.rowToTask(result[0]) : null;
+      return results[0] ? this.rowToTask(results[0]) : null;
     } catch (error) {
       logger.error("Failed to get task by ID", { taskId: id, error });
       throw new OpenCodeError("TASK_GET_FAILED", "Failed to get task", {
@@ -137,13 +137,19 @@ export class TaskRegistry {
     }
 
     try {
-      let query = this.db.select().from(schema.tasks);
+      const whereConditions: ReturnType<typeof and>[] = [];
 
       if (filters.status) {
-        query = query.where(eq(schema.tasks.status, filters.status));
+        whereConditions.push(eq(schema.tasks.status, filters.status));
       }
       if (filters.owner) {
-        query = query.where(eq(schema.tasks.owner, filters.owner));
+        whereConditions.push(eq(schema.tasks.owner, filters.owner));
+      }
+
+      let query = this.db.select().from(schema.tasks);
+
+      if (whereConditions.length > 0) {
+        query = query.where(and(...whereConditions) as any);
       }
 
       if (filters.limit) {
@@ -179,18 +185,18 @@ export class TaskRegistry {
     }
 
     try {
-      const [result] = await this.db
+      const results = await this.db
         .update(schema.tasks)
         .set({
           status: updates.status,
           owner: updates.owner || null,
-          metadata: updates.metadata ? JSON.stringify(updates.metadata) : null,
+          metadata: updates.metadata ? (updates.metadata as any) : null,
           updatedAt: new Date(),
         })
         .where(eq(schema.tasks.id, id))
         .returning();
 
-      if (result.length === 0) {
+      if (results.length === 0) {
         logger.warn("Task update affected 0 rows", { taskId: id });
         return null;
       }
@@ -217,12 +223,12 @@ export class TaskRegistry {
     }
 
     try {
-      const [result] = await this.db
+      const results = await this.db
         .delete(schema.tasks)
         .where(eq(schema.tasks.id, id))
         .returning();
 
-      const success = result.length > 0;
+      const success = results.length > 0;
 
       if (success) {
         logger.info("Task deleted", { taskId: id });
@@ -261,14 +267,14 @@ export class TaskRegistry {
         updatedAt: new Date(),
       }));
 
-      const [result] = await this.db
+      const results = await this.db
         .insert(schema.tasks)
         .values(values)
         .returning();
 
       logger.info("Bulk tasks created", { count: tasks.length });
 
-      return result;
+      return results.map((row) => this.rowToTask(row));
     } catch (error) {
       logger.error("Failed to bulk create tasks", { error });
       throw new OpenCodeError(
@@ -291,8 +297,8 @@ export class TaskRegistry {
 
     try {
       let query = this.db
-        .select({ count: sql`count(*)::int` })
-        .from(schema.tasks);
+        .select({ count: sql`count(*)` })
+        .from(schema.tasks) as any;
 
       if (filters.status) {
         query = query.where(eq(schema.tasks.status, filters.status));
@@ -301,8 +307,9 @@ export class TaskRegistry {
         query = query.where(eq(schema.tasks.owner, filters.owner));
       }
 
-      const [result] = await query;
-      return result[0]?.count || 0;
+      const results = await query;
+      const [{ count }] = results;
+      return count || 0;
     } catch (error) {
       logger.error("Failed to count tasks", { error });
       throw new OpenCodeError("TASK_COUNT_FAILED", "Failed to count tasks", {
@@ -311,15 +318,21 @@ export class TaskRegistry {
     }
   }
 
-  private rowToTask(row: any): Task {
+  private rowToTask(row: TaskSelect): Task {
+    const dbRow = row as any;
     return {
-      id: row.id,
-      name: row.name,
-      status: row.status as TaskStatus,
-      owner: row.owner,
-      metadata: row.metadata ? JSON.parse(row.metadata as string) : null,
-      createdAt: row.createdAt?.toISOString() || new Date().toISOString(),
-      updatedAt: row.updatedAt?.toISOString() || new Date().toISOString(),
+      id: dbRow.id,
+      name: dbRow.name,
+      status: dbRow.status as TaskStatus,
+      owner: dbRow.owner || undefined,
+      metadata: (dbRow.metadata as any) || undefined,
+      createdAt: dbRow.createdAt instanceof Date
+        ? dbRow.createdAt.toISOString()
+        : new Date(String(dbRow.createdAt)).toISOString(),
+      updatedAt: dbRow.updatedAt instanceof Date
+        ? dbRow.updatedAt.toISOString()
+        : new Date(String(dbRow.updatedAt)).toISOString(),
     };
   }
+}
 }
