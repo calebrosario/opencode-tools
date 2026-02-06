@@ -22,6 +22,12 @@ export class DatabaseManager {
 
   public async initialize(): Promise<void> {
     try {
+      // Close existing pool before creating new one to prevent memory leaks
+      if (this.pool) {
+        await this.pool.end();
+        logger.info("Closed existing database connection pool");
+      }
+
       // Create connection pool for PostgreSQL
       this.pool = new Pool({
         connectionString:
@@ -69,11 +75,17 @@ export class DatabaseManager {
   }
 }
 
-// Initialize Database Manager
+// Initialize Database Manager (crashes app on failure - database is critical)
 DatabaseManager.getInstance()
   .initialize()
   .catch((error) => {
-    logger.error("Failed to initialize Database Manager", {
-      error: error instanceof Error ? error.message : String(error),
-    });
+    logger.error(
+      "CRITICAL: Failed to initialize Database Manager - database is required",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+    // Database is critical infrastructure - crash app if initialization fails
+    // This prevents silent failures where app continues with broken database
+    process.exit(1);
   });

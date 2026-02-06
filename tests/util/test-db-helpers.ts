@@ -3,7 +3,7 @@
 
 import { DatabaseManager } from "../../src/persistence/database";
 import * as schema from "../../src/persistence/schema";
-import { sql } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { logger } from "../../src/util/logger";
 
 /**
@@ -21,12 +21,15 @@ export async function setupTestDatabase(): Promise<void> {
 
 /**
  * Cleanup test database after tests
- * Drops all tables and closes connection
+ * Clears all data but keeps connection pool open for subsequent tests
  */
 export async function cleanupTestDatabase(): Promise<void> {
   const dbManager = DatabaseManager.getInstance();
-  await dbManager.close();
-  logger.info("Test database connection closed");
+  const db = dbManager.getDatabase();
+
+  // Clear data but don't close connection - maintains singleton pattern
+  await db.delete(schema.tasks);
+  logger.info("Test database data cleared");
 }
 
 /**

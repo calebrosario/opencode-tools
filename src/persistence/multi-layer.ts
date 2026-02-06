@@ -363,6 +363,8 @@ export class MultiLayerPersistence {
     try {
       const dirs = await fs.readdir(checkpointsPath);
       const checkpoints: Checkpoint[] = [];
+      const failedCheckpoints: Array<{ checkpointId: string; error: unknown }> =
+        [];
 
       for (const dir of dirs) {
         try {
@@ -379,11 +381,25 @@ export class MultiLayerPersistence {
             manifest,
           });
         } catch (error) {
-          logger.warn("Failed to read checkpoint manifest", {
+          const errorObj =
+            error instanceof Error ? error.message : String(error);
+          failedCheckpoints.push({
+            checkpointId: dir,
+            error: errorObj,
+          });
+          logger.error("Failed to read checkpoint manifest", {
             taskId,
             checkpointId: dir,
+            error: errorObj,
           });
         }
+      }
+
+      // Throw aggregate error if any checkpoint failed to load
+      if (failedCheckpoints.length > 0) {
+        throw new Error(
+          `Failed to read ${failedCheckpoints.length}/${dirs.length} checkpoint manifests: ${failedCheckpoints.map((f) => f.checkpointId).join(", ")}`,
+        );
       }
 
       return checkpoints.sort((a, b) => b.timestamp.localeCompare(a.timestamp));

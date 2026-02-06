@@ -14,24 +14,25 @@ export class TaskRegistry {
   private db: ReturnType<typeof DatabaseManager.prototype.getDatabase> | null =
     null;
   private ready: Promise<void> | null = null;
+  private initializing: boolean = false;
 
   private constructor() {}
 
   public static getInstance(): TaskRegistry {
     if (!TaskRegistry.instance) {
       TaskRegistry.instance = new TaskRegistry();
-      // Auto-initialize when instance is created
-      TaskRegistry.instance.ready = TaskRegistry.instance
-        .initialize()
-        .catch((err) => {
-          logger.error("Failed to auto-initialize TaskRegistry", { err });
-          throw err;
-        });
     }
     return TaskRegistry.instance;
   }
 
   private async ensureReady(): Promise<void> {
+    // Guard against concurrent initialization attempts
+    if (!this.ready && !this.initializing) {
+      this.initializing = true;
+      this.ready = this.initialize().finally(() => {
+        this.initializing = false;
+      });
+    }
     if (this.ready) {
       await this.ready;
     }
