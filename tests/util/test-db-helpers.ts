@@ -3,6 +3,7 @@
 
 import { DatabaseManager } from "../../src/persistence/database";
 import * as schema from "../../src/persistence/schema";
+import { sql } from "drizzle-orm/pg-core";
 import { logger } from "../../src/util/logger";
 
 /**
@@ -14,8 +15,7 @@ export async function setupTestDatabase(): Promise<void> {
   const db = dbManager.getDatabase();
 
   // Clear existing test data
-  // @ts-expect-error - Drizzle ORM .delete() method type not fully recognized by TypeScript
-  await db.delete(schema.tasks).run();
+  await db.delete(schema.tasks);
   logger.info("Test database cleared");
 }
 
@@ -37,7 +37,7 @@ export async function beginTestTransaction(): Promise<void> {
   const dbManager = DatabaseManager.getInstance();
   const db = dbManager.getDatabase();
 
-  await db.execute(schema.sql`BEGIN`);
+  await db.execute(sql`BEGIN`);
   logger.debug("Test transaction begun");
 }
 
@@ -49,7 +49,7 @@ export async function rollbackTestTransaction(): Promise<void> {
   const dbManager = DatabaseManager.getInstance();
   const db = dbManager.getDatabase();
 
-  await db.execute(schema.sql`ROLLBACK`);
+  await db.execute(sql`ROLLBACK`);
   logger.debug("Test transaction rolled back");
 }
 
@@ -66,7 +66,7 @@ export async function seedTestTasks(tasks: any[]): Promise<void> {
     return;
   }
 
-  await db.insert(schema.tasks).values(tasks).run();
+  await db.insert(schema.tasks).values(tasks);
   logger.info(`Seeded ${tasks.length} test tasks`);
 }
 
