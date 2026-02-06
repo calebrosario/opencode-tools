@@ -1,5 +1,19 @@
 // Manual mock for Dockerode library
 // Public API for type-safe Jest mocks using jest.mocked() pattern
+//
+// TECHNICAL DEBT: All mock methods use 'any' type
+// - Jest.fn() returns 'never' type in strict TypeScript (documented limitation)
+// - Full type safety would require Jest.Mock<...> type parameters
+// - Current approach provides runtime safety and clean test structure
+//
+// Impact: Zero compile-time type safety for mock methods
+// - Tests run correctly with runtime type safety
+// - IDE autocomplete doesn't work for mock return values
+//
+// Migration path (future):
+// - Option A: Use jest.MockedFunction<...> type parameters (requires refactoring)
+// - Option B: Switch to Vitest for better TypeScript mock type inference
+// - Option C: Live with 'any' as technical debt (current choice)
 
 import { jest } from "@jest/globals";
 
@@ -7,7 +21,6 @@ import { jest } from "@jest/globals";
 jest.mock("dockerode");
 
 // Type-safe mock interface for tests
-// jest.fn() returns 'never' type in strict TypeScript - documented Jest limitation
 export interface MockedDockerode {
   createNetwork: any;
   getNetwork: any;
