@@ -16,10 +16,26 @@ import {
 } from "../util/test-db-helpers";
 
 describe("End-to-End Workflow Tests", () => {
-  // Bypassing Docker availability check for mock testing
-  // if (!dockerHelper.isAvailable()) {
-  //   return;
-  // }
+  const usingDockerMock = !dockerHelper.isAvailable();
+
+  if (!process.env.FORCE_MOCK_TESTS && usingDockerMock) {
+    console.warn(
+      "Docker unavailable - tests skipped. Use FORCE_MOCK_TESTS=true to run with mocks",
+      {
+        reason: "Docker socket not found or inaccessible",
+      },
+    );
+    return;
+  }
+
+  if (usingDockerMock) {
+    console.warn(
+      "Running with Docker mocks - integration tests may not cover real Docker behavior",
+      {
+        reason: "Docker socket not found or inaccessible",
+      },
+    );
+  }
 
   beforeAll(async () => {
     await setupTestDatabase();
@@ -29,24 +45,27 @@ describe("End-to-End Workflow Tests", () => {
   afterAll(async () => {
     await cleanupTestDatabase();
     // Cleanup all test tasks
-    try {
-      await taskLifecycle.deleteTask("e2e-task-lifecycle");
-    } catch {}
-    try {
-      await taskLifecycle.deleteTask("e2e-checkpoint-task");
-    } catch {}
-    try {
-      await taskLifecycle.deleteTask("e2e-collab-task-1");
-    } catch {}
-    try {
-      await taskLifecycle.deleteTask("e2e-collab-task-2");
-    } catch {}
-    try {
-      await taskLifecycle.deleteTask("e2e-error-task");
-    } catch {}
-    try {
-      await taskLifecycle.deleteTask("e2e-recovery-task");
-    } catch {}
+    const tasks = [
+      "e2e-task-lifecycle",
+      "e2e-checkpoint-task",
+      "e2e-collab-task-1",
+      "e2e-collab-task-2",
+      "e2e-error-task",
+      "e2e-recovery-task",
+    ];
+
+    for (const taskId of tasks) {
+      try {
+        await taskLifecycle.deleteTask(taskId);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(`Failed to cleanup task in afterAll`, {
+          taskId,
+          error: errorMessage,
+        });
+      }
+    }
   });
 
   describe("Workflow 1: Complete Task Lifecycle", () => {

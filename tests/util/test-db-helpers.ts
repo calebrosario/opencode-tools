@@ -11,12 +11,20 @@ import { logger } from "../../src/util/logger";
  * Creates a fresh database connection and clears existing data
  */
 export async function setupTestDatabase(): Promise<void> {
-  const dbManager = DatabaseManager.getInstance();
-  const db = dbManager.getDatabase();
+  try {
+    const dbManager = DatabaseManager.getInstance();
+    const db = dbManager.getDatabase();
 
-  // Clear existing test data
-  await db.delete(schema.tasks);
-  logger.info("Test database cleared");
+    // Clear existing test data
+    await db.delete(schema.tasks);
+    logger.info("Test database cleared");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to setup test database", {
+      error: errorMessage,
+    });
+    throw new Error(`Failed to setup test database: ${errorMessage}`);
+  }
 }
 
 /**
@@ -37,11 +45,19 @@ export async function cleanupTestDatabase(): Promise<void> {
  * All changes will be rolled back on test completion
  */
 export async function beginTestTransaction(): Promise<void> {
-  const dbManager = DatabaseManager.getInstance();
-  const db = dbManager.getDatabase();
+  try {
+    const dbManager = DatabaseManager.getInstance();
+    const db = dbManager.getDatabase();
 
-  await db.execute(sql`BEGIN`);
-  logger.debug("Test transaction begun");
+    await db.execute(sql`BEGIN`);
+    logger.debug("Test transaction begun");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to begin test transaction", {
+      error: errorMessage,
+    });
+    throw new Error(`Failed to begin test transaction: ${errorMessage}`);
+  }
 }
 
 /**
@@ -49,11 +65,19 @@ export async function beginTestTransaction(): Promise<void> {
  * Reverts all changes made during test
  */
 export async function rollbackTestTransaction(): Promise<void> {
-  const dbManager = DatabaseManager.getInstance();
-  const db = dbManager.getDatabase();
+  try {
+    const dbManager = DatabaseManager.getInstance();
+    const db = dbManager.getDatabase();
 
-  await db.execute(sql`ROLLBACK`);
-  logger.debug("Test transaction rolled back");
+    await db.execute(sql`ROLLBACK`);
+    logger.debug("Test transaction rolled back");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to rollback test transaction", {
+      error: errorMessage,
+    });
+    // Don't rethrow - cleanup errors shouldn't fail the test
+  }
 }
 
 /**

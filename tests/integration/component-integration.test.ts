@@ -25,10 +25,27 @@ import {
 } from "../util/test-db-helpers";
 
 describe("Component Integration Tests", () => {
-  // Bypassing Docker availability check for mock testing
-  // if (!dockerHelper.isAvailable()) {
-  //   return;
-  // }
+  const usingDockerMock = !dockerHelper.isAvailable();
+
+  if (!process.env.FORCE_MOCK_TESTS && usingDockerMock) {
+    console.warn(
+      "Docker unavailable - tests skipped. Use FORCE_MOCK_TESTS=true to run with mocks",
+      {
+        reason: "Docker socket not found or inaccessible",
+      },
+    );
+    return;
+  }
+
+  if (usingDockerMock) {
+    console.warn(
+      "Running with Docker mocks - integration tests may not cover real Docker behavior",
+      {
+        reason: "Docker socket not found or inaccessible",
+      },
+    );
+  }
+
   const testTaskId = "integration-test-task";
   const testAgentId = "integration-test-agent";
 
@@ -40,10 +57,23 @@ describe("Component Integration Tests", () => {
   beforeEach(async () => {
     await beginTestTransaction();
     try {
-      await taskRegistry.getById(testTaskId);
-      await taskLifecycle.deleteTask(testTaskId);
-    } catch {
-      // Task doesn't exist, that's fine
+      const existingTask = await taskRegistry.getById(testTaskId);
+      if (existingTask) {
+        await taskLifecycle.deleteTask(testTaskId);
+      }
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("not found") ||
+          error.message.includes("No rows returned"))
+      ) {
+        return;
+      }
+      console.error("Failed to cleanup task in beforeEach", {
+        taskId: testTaskId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
     }
   });
 
@@ -54,8 +84,18 @@ describe("Component Integration Tests", () => {
   afterAll(async () => {
     try {
       await taskLifecycle.deleteTask(testTaskId);
-    } catch {
-      // Ignore
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("not found") ||
+          error.message.includes("No rows returned"))
+      ) {
+        return;
+      }
+      console.error("Failed to cleanup task in afterAll", {
+        taskId: testTaskId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
     await cleanupTestDatabase();
   });
