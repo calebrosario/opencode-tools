@@ -206,7 +206,7 @@ describe("TaskRegistry", () => {
   });
 
   // Skip test due to transient database connection issue with concurrent operations
-  it.skip("should handle concurrent operations", async () => {
+  test("should handle concurrent operations", async () => {
     await taskRegistry.initialize();
     const task = await taskRegistry.create({
       id: "test-task-4",
