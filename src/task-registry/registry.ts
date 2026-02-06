@@ -209,7 +209,13 @@ export class TaskRegistry {
 
       if (results.length === 0) {
         logger.warn("Task update affected 0 rows", { taskId: id });
-        return null;
+        throw new OpenCodeError(
+          "TASK_NOT_FOUND",
+          "Task not found - cannot be updated",
+          {
+            taskId: id,
+          },
+        );
       }
 
       const updated = await this.getById(id);
