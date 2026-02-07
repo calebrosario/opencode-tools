@@ -1,8 +1,8 @@
 // CLI Entry Point - Phase 2: MVP Core
 // Week 13: User Commands - Main CLI
 
-import { Command } from 'commander';
-import packageJson from '../../package.json';
+import { Command } from "commander";
+import packageJson from "../../package.json";
 import {
   createTaskCommand,
   resumeTaskCommand,
@@ -17,14 +17,16 @@ import {
   taskDecisionsCommand,
   findTaskCommand,
   taskStatsCommand,
-} from './index';
+  metricsCommand,
+  healthCommand,
+} from "./index";
 
 // Main CLI program
 const program = new Command();
 program
-  .name('opencode-tools')
-  .description('OpenCode Tools - Task Management with Docker Sandboxes')
-  .version(packageJson.version || '0.1.0');
+  .name("agent-armor")
+  .description("Agent Armor - Task Management with Docker Sandboxes")
+  .version(packageJson.version || "0.1.0");
 
 // Add task management commands
 program.addCommand(createTaskCommand);
@@ -44,6 +46,10 @@ program.addCommand(taskExecutionsCommand);
 program.addCommand(taskDecisionsCommand);
 program.addCommand(findTaskCommand);
 program.addCommand(taskStatsCommand);
+
+// Add monitoring commands
+program.addCommand(metricsCommand);
+program.addCommand(healthCommand);
 
 // Parse CLI arguments
 program.parse(process.argv);

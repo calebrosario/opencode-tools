@@ -53,6 +53,15 @@ OpenCode Tools is a production-ready system for managing AI agent tasks with:
 - Integration and E2E tests
 - Complete documentation (README, API, User Guide, State Machines)
 
+✅ Phase 3: Monitoring & Metrics (100%)
+
+- Metrics collection system with counters, timers, and gauges
+- Health check system with database, Docker, disk, and memory checks
+- Performance tracking for CPU, memory, and disk usage
+- Dashboard data provider with aggregation and formatting
+- 2 CLI commands (metrics, health) with JSON and CSV export
+- Monitoring tests and documentation
+
 ## Quick Start
 
 ### Start the MCP Server
@@ -120,11 +129,32 @@ Optimistic locking with two modes:
 
 ### 6. CLI Commands
 
-13 commands organized by category:
+15 commands organized by category:
 
 - 6 task management commands
 - 2 checkpoint commands
 - 5 memory commands
+- 2 monitoring commands (metrics, health)
+
+```bash
+# Display metrics dashboard
+npm run cli -- metrics
+
+# Display metrics as JSON
+npm run cli -- metrics --json
+
+# Display metrics as CSV
+npm run cli -- metrics --csv
+
+# Display health check status
+npm run cli -- health
+
+# Display health with detailed information
+npm run cli -- health --detailed
+
+# Exit with error if any health check fails
+npm run cli -- health --fail-fast
+```
 
 ## Documentation
 

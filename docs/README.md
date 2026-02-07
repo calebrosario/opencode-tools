@@ -13,7 +13,7 @@ OpenCode Tools is a production-ready system for managing AI agent tasks with:
 - **MCP Integration**: Model Context Protocol server for agent communication
 - **CLI Tools**: 13 command-line utilities for task management
 
-### DeepWiki [Opencode-Tools](https://deepwiki.com/calebrosario/opencode-tools)
+### DeepWiki [Agent Armor](https://deepwiki.com/calebrosario/agent-armor)
 
 ## Current Status
 
@@ -24,12 +24,14 @@ OpenCode Tools is a production-ready system for managing AI agent tasks with:
 ### Completed Features
 
 ✅ Phase 0: Deep Dive Research (100%)
+
 - Docker Engine API integration
 - Concurrency models with optimistic locking
 - Multi-layer persistence architecture
 - JSONL logging benchmarks
 
 ✅ Phase 1: Core Infrastructure (100%)
+
 - TaskRegistry with SQLite backend
 - LockManager with optimistic locking
 - MultiLayerPersistence with 4 layers
@@ -38,6 +40,7 @@ OpenCode Tools is a production-ready system for managing AI agent tasks with:
 - Crash recovery system
 
 ✅ Phase 2: MVP Core (100%)
+
 - TaskLifecycle with state transitions
 - MCP Server with 8 tools
 - Hook system (6 hook types)
@@ -57,8 +60,8 @@ OpenCode Tools is a production-ready system for managing AI agent tasks with:
 
 ```bash
 # Clone repository
-git clone https://github.com/calebrosario/opencode-tools.git
-cd opencode-tools
+git clone https://github.com/calebrosario/agent-armor.git
+cd agent-armor
 
 # Install dependencies
 npm install
@@ -149,20 +152,24 @@ npm run cli -- checkpoint --task task-123 --description "Before deployment"
 ### Persistence Layers
 
 **Layer 1: state.json** - Current task state (fast access)
+
 - Task ID, status, metadata
 - SHA256 checksum for validation
 
 **Layer 2: logs.jsonl** - Audit trail (append-only)
+
 - JSONL format for streaming
 - Filtering by level, date, offset
 - Batch append support
 
 **Layer 3: decisions.md** - Agent decisions (human-readable)
+
 - Markdown format
 - Agent ID, decision, reasoning
 - Timestamp tracking
 
 **Layer 4: checkpoints/** - Snapshots (point-in-time recovery)
+
 - State and logs snapshots
 - Manifest metadata
 - Restore functionality
@@ -174,23 +181,23 @@ npm run cli -- checkpoint --task task-123 --description "Before deployment"
 ```typescript
 // Create task
 const task = await taskLifecycle.createTask({
-  name: 'My Task',
-  owner: 'agent-1',
-  metadata: { priority: 'high' }
+  name: "My Task",
+  owner: "agent-1",
+  metadata: { priority: "high" },
 });
 
 // Start task
-await taskLifecycle.startTask(task.id, 'agent-1');
+await taskLifecycle.startTask(task.id, "agent-1");
 
 // Complete task
 await taskLifecycle.completeTask(task.id, {
   success: true,
-  data: { result: 'completed' },
-  message: 'Task completed successfully'
+  data: { result: "completed" },
+  message: "Task completed successfully",
 });
 
 // Fail task
-await taskLifecycle.failTask(task.id, 'Error message');
+await taskLifecycle.failTask(task.id, "Error message");
 
 // Cancel task
 await taskLifecycle.cancelTask(task.id);
@@ -200,13 +207,13 @@ await taskLifecycle.cancelTask(task.id);
 
 ```typescript
 // Exclusive mode (single agent)
-await lockManager.acquireLockWithRetry('task:123', 'agent-1', 'exclusive');
+await lockManager.acquireLockWithRetry("task:123", "agent-1", "exclusive");
 
 // Collaborative mode (multiple agents)
-await lockManager.acquireLockWithRetry('task:123', 'agent-1', 'collaborative');
+await lockManager.acquireLockWithRetry("task:123", "agent-1", "collaborative");
 
 // With automatic lock management
-await lockManager.withLock('task:123', 'agent-1', async () => {
+await lockManager.withLock("task:123", "agent-1", async () => {
   // Critical section - automatically releases lock
   await taskRegistry.update(taskId, updates);
 });
@@ -218,23 +225,23 @@ await lockManager.withLock('task:123', 'agent-1', async () => {
 // Save state
 await multiLayerPersistence.saveState(taskId, {
   taskId,
-  status: 'running',
+  status: "running",
   data: { progress: 50 },
-  lastUpdated: new Date().toISOString()
+  lastUpdated: new Date().toISOString(),
 });
 
 // Append log
 await multiLayerPersistence.appendLog(taskId, {
   timestamp: new Date().toISOString(),
-  level: 'info',
-  message: 'Processing item 5/10',
-  data: { item: 5, total: 10 }
+  level: "info",
+  message: "Processing item 5/10",
+  data: { item: 5, total: 10 },
 });
 
 // Create checkpoint
 const checkpointId = await multiLayerPersistence.createCheckpoint(
   taskId,
-  'Before deployment'
+  "Before deployment",
 );
 
 // Restore checkpoint
@@ -258,6 +265,7 @@ taskLifecycleHooks.registerAfterTaskComplete(async (taskId, result) => {
 ### 5. MCP Tools
 
 **Available Tools:**
+
 - `create_task_sandbox` - Create new task
 - `attach_agent_to_task` - Attach agent to task
 - `detach_agent_from_task` - Detach agent from task
@@ -270,6 +278,7 @@ taskLifecycleHooks.registerAfterTaskComplete(async (taskId, result) => {
 ### 6. CLI Commands
 
 **Task Management:**
+
 - `create-task` - Create new task
 - `resume-task` - Resume pending task
 - `list-tasks` - List tasks with filters
@@ -278,10 +287,12 @@ taskLifecycleHooks.registerAfterTaskComplete(async (taskId, result) => {
 - `cleanup-task` - Cleanup task and resources
 
 **Checkpoints:**
+
 - `checkpoint` - Create checkpoint
 - `restore-checkpoint` - Restore from checkpoint
 
 **Memory:**
+
 - `task-history` - View task execution history
 - `task-executions` - View execution details
 - `task-decisions` - View agent decisions
@@ -399,6 +410,7 @@ npm run cli -- resume-task --agent recovery-agent --checkpoint checkpoint_last_g
 ### Issue: Docker connection failed
 
 **Solution:**
+
 ```bash
 # Check Docker is running
 docker info
@@ -413,6 +425,7 @@ sudo usermod -aG docker $USER
 ### Issue: Database locked
 
 **Solution:**
+
 ```bash
 # Check for other processes
 lsof data/opencode.db
@@ -424,6 +437,7 @@ lsof data/opencode.db
 ### Issue: Hooks not executing
 
 **Solution:**
+
 - Check hook registration order (lower priority = earlier execution)
 - Verify hooks aren't throwing errors (hooks log but continue)
 - Check hook function signatures match expected types
@@ -431,6 +445,7 @@ lsof data/opencode.db
 ### Issue: Performance degradation
 
 **Solution:**
+
 ```bash
 # Check lock statistics
 npm run cli -- task-stats
@@ -445,17 +460,20 @@ OPENCODE_DB_WAL=true npm start
 ## Performance Benchmarks
 
 ### SQLite (100K Tasks)
+
 - Batch Insert: 212,319 ops/sec
 - Single Row Read: 302,724 ops/sec
 - Range Query: 18,197 ops/sec
 - Database Size: 23.36MB
 
 ### JSONL (1M Entries)
+
 - Simple Append: 10,785 ops/sec
 - Batch Append: 377,060 ops/sec (35x faster)
 - File Size: 183MB
 
 ### Lock Manager
+
 - Lock Acquisition: <1ms
 - Lock Throughput: 742K ops/sec
 - Conflict Detection: <5ms
@@ -491,6 +509,7 @@ npm test -- path/to/test.test.ts
 ## Roadmap
 
 ### Phase 3: Production Features (Planned)
+
 - Docker Manager with full lifecycle
 - Resource monitoring with alerts
 - Agent sandboxing with network isolation
@@ -498,6 +517,7 @@ npm test -- path/to/test.test.ts
 - Performance monitoring dashboard
 
 ### Phase 4: Scaling (Future)
+
 - PostgreSQL migration for >20 concurrent writers
 - Distributed task queues
 - Multi-region deployment

@@ -1,5 +1,5 @@
 {
-  "name": "opencode-tools",
+  "name": "agent-armor",
   "version": "0.1.0",
   "description": "Docker-based task management system with concurrency, state persistence, and multi-agent orchestration",
   "main": "dist/index.js",
