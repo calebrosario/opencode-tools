@@ -28,30 +28,30 @@ export const metricsCommand = new Command("metrics")
       console.log("OPENCODE TOOLS - METRICS DASHBOARD");
       console.log("═".repeat(60));
 
-      console.log("\n📊 SUMMARY\n");
+      console.log("\nSUMMARY\n");
       formatted.summary.forEach((line) => console.log(`  ${line}`));
 
-      console.log("\n📋 TASK METRICS\n");
+      console.log("\nTASK METRICS\n");
       formatted.tasks.forEach((line) => console.log(line));
 
       if (formatted.operations.length > 0) {
-        console.log("\n⚡ OPERATION PERFORMANCE\n");
+        console.log("\nOPERATION PERFORMANCE\n");
         formatted.operations.forEach((line) => console.log(line));
       }
 
       if (formatted.performance.length > 0) {
-        console.log("\n💻 PERFORMANCE\n");
+        console.log("\nPERFORMANCE\n");
         formatted.performance.forEach((line) => console.log(line));
       }
 
       if (formatted.recommendations.length > 0) {
-        console.log("\n💡 RECOMMENDATIONS\n");
+        console.log("\nRECOMMENDATIONS\n");
         formatted.recommendations.forEach((line) => console.log(`  ${line}`));
       }
 
       console.log("\n" + "═".repeat(60) + "\n");
     } catch (error: any) {
-      console.error("❌ Failed to get metrics:", error.message);
+      console.error("[FAIL] Failed to get metrics:", error.message);
       process.exit(1);
     }
   });

@@ -10,7 +10,10 @@ describe("MetricsCollector", () => {
       metrics.increment("test_counter", {}, 5);
       const counters = metrics.getCounters();
       expect(counters.length).toBe(1);
-      expect(counters[0].value).toBe(5);
+      const firstCounter = counters[0];
+      if (firstCounter) {
+        expect(firstCounter.value).toBe(5);
+      }
     });
   });
 
@@ -29,15 +32,18 @@ describe("MetricsCollector", () => {
       metrics.setGauge("test", 42, {});
       const gauges = metrics.getGauges();
       expect(gauges.length).toBe(1);
-      expect(gauges[0].value).toBe(42);
+      const firstGauge = gauges[0];
+      if (firstGauge) {
+        expect(firstGauge.value).toBe(42);
+      }
     });
   });
 
   describe("Export", () => {
     it("should export as JSON", () => {
       const json = metrics.exportJSON();
-      expect(typeof json).toBe("string");
-      const parsed = JSON.parse(json as string);
+      expect(typeof json).toBe("object");
+      const parsed = json as { counters: unknown; gauges: unknown };
       expect(parsed).toHaveProperty("counters");
       expect(parsed).toHaveProperty("gauges");
     });

@@ -22,10 +22,10 @@ export const healthCommand = new Command("health")
 
       const statusEmoji =
         healthData.overall === "healthy"
-          ? "✅"
+          ? "[OK]"
           : healthData.overall === "warning"
-            ? "⚠️"
-            : "❌";
+            ? "[WARN]"
+            : "[FAIL]";
       const statusColor =
         healthData.overall === "healthy"
           ? "\x1b[32m"
@@ -47,10 +47,10 @@ export const healthCommand = new Command("health")
       for (const check of healthData.checks) {
         const checkEmoji =
           check.status === "healthy"
-            ? "✅"
+            ? "[OK]"
             : check.status === "warning"
-              ? "⚠️"
-              : "❌";
+              ? "[WARN]"
+              : "[FAIL]";
 
         const checkColor =
           check.status === "healthy"
@@ -96,11 +96,11 @@ export const healthCommand = new Command("health")
       console.log("═".repeat(60) + "\n");
 
       if (options.failFast && hasFailures) {
-        console.error("❌ Health check failed");
+        console.error("[FAIL] Health check failed");
         process.exit(1);
       }
     } catch (error: any) {
-      console.error("❌ Failed to run health check:", error.message);
+      console.error("[FAIL] Failed to run health check:", error.message);
       process.exit(1);
     }
   });

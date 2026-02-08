@@ -135,6 +135,15 @@ class PerformanceTracker extends EventEmitter {
     }
   }
 
+  public clearHistory(): void {
+    this.snapshots = [];
+    logger.info("Performance history cleared");
+  }
+
+  public getHistory(): PerformanceSnapshot[] {
+    return [...this.snapshots];
+  }
+
   /**
    * Take a performance snapshot
    */
@@ -416,6 +425,7 @@ export const performance = PerformanceTracker.getInstance();
 // Convenience functions
 export const startTracking = () => performance.start();
 export const stopTracking = () => performance.stop();
+export const clearHistory = () => performance.clearHistory();
 export const takeSnapshot = () => performance.takeSnapshot();
 export const getSnapshots = () => performance.getSnapshots();
 export const getLatestSnapshot = () => performance.getLatestSnapshot();

@@ -10,7 +10,6 @@
 import { metrics } from "./metrics";
 import { health, SystemHealth, HealthStatus } from "./health";
 import { performance, PerformanceSnapshot } from "./performance";
-import { logger } from "../util/logger";
 
 export interface DashboardData {
   timestamp: string;
@@ -66,7 +65,6 @@ export interface FormattedDashboard {
  */
 class DashboardProvider {
   private static instance: DashboardProvider;
-  private startTime: number = Date.now();
 
   private constructor() {}
 
@@ -97,7 +95,7 @@ class DashboardProvider {
       timestamp: new Date().toISOString(),
       overall: {
         status: healthData.overall,
-        uptime: Math.floor((Date.now() - this.startTime) / 1000),
+        uptime: Math.floor(process.uptime()),
         version: process.env.npm_package_version || "0.0.0",
       },
       metrics: {
@@ -150,22 +148,16 @@ class DashboardProvider {
   private getOperationMetrics(): DashboardData["metrics"]["operations"] {
     const operations: DashboardData["metrics"]["operations"] = [];
 
-    // Get all timer metrics and group by name
     const timers = metrics.getTimers();
-    const groupedByName: Record<string, number[]> = {};
+    const groupedByName = new Map<string, number[]>();
 
     for (const timer of timers) {
-      const name = timer.name;
-      if (!groupedByName[name]) {
-        groupedByName[name] = [];
-      }
-      const arr = groupedByName[name];
-      if (arr) {
-        arr.push(timer.durationMs);
-      }
+      const durations = groupedByName.get(timer.name) || [];
+      durations.push(timer.durationMs);
+      groupedByName.set(timer.name, durations);
     }
 
-    for (const [name, durations] of Object.entries(groupedByName)) {
+    for (const [name, durations] of groupedByName) {
       if (durations.length === 0) continue;
 
       const sum = durations.reduce((a, b) => a + b, 0);
@@ -226,10 +218,10 @@ class DashboardProvider {
     for (const check of data.health.checks) {
       const icon =
         check.status === "healthy"
-          ? "✓"
+          ? "[OK]"
           : check.status === "warning"
-            ? "⚠"
-            : "✗";
+            ? "[WARN]"
+            : "[FAIL]";
       health.push(
         `  ${icon} ${check.name.padEnd(15)} ${check.status.padEnd(10)} ${check.durationMs}ms`,
       );
@@ -300,7 +292,7 @@ class DashboardProvider {
         100;
       if (failureRate > 20) {
         recommendations.push(
-          `⚠ High failure rate detected (${failureRate.toFixed(1)}%). Review error logs.`,
+          `[WARN] High failure rate detected (${failureRate.toFixed(1)}%). Review error logs.`,
         );
       }
     }
@@ -311,7 +303,7 @@ class DashboardProvider {
     );
     if (unhealthyChecks.length > 0) {
       recommendations.push(
-        `⚠ ${unhealthyChecks.length} health check(s) failing. Immediate attention required.`,
+        `[FAIL] ${unhealthyChecks.length} health check(s) failing. Immediate attention required.`,
       );
     }
 
@@ -320,7 +312,7 @@ class DashboardProvider {
     );
     if (warningChecks.length > 0) {
       recommendations.push(
-        `ℹ ${warningChecks.length} health check(s) showing warnings.`,
+        `[INFO] ${warningChecks.length} health check(s) showing warnings.`,
       );
     }
 
@@ -328,12 +320,12 @@ class DashboardProvider {
     if (data.performance.current) {
       if (data.performance.current.cpu.usagePercent > 80) {
         recommendations.push(
-          `⚠ High CPU usage (${data.performance.current.cpu.usagePercent.toFixed(1)}%). Consider scaling.`,
+          `[WARN] High CPU usage (${data.performance.current.cpu.usagePercent.toFixed(1)}%). Consider scaling.`,
         );
       }
       if (data.performance.current.memory.usagePercent > 85) {
         recommendations.push(
-          `⚠ High memory usage (${data.performance.current.memory.usagePercent.toFixed(1)}%). Monitor for leaks.`,
+          `[WARN] High memory usage (${data.performance.current.memory.usagePercent.toFixed(1)}%). Monitor for leaks.`,
         );
       }
     }
@@ -342,13 +334,13 @@ class DashboardProvider {
     for (const op of data.metrics.operations) {
       if (op.avgDuration > 1000) {
         recommendations.push(
-          `ℹ Slow operation detected: ${op.name} (avg: ${op.avgDuration.toFixed(0)}ms)`,
+          `[INFO] Slow operation detected: ${op.name} (avg: ${op.avgDuration.toFixed(0)}ms)`,
         );
       }
     }
 
     if (recommendations.length === 0) {
-      recommendations.push("✓ All systems operating normally.");
+      recommendations.push("[OK] All systems operating normally.");
     }
 
     return recommendations;
@@ -359,9 +351,9 @@ class DashboardProvider {
    */
   private formatStatus(status: HealthStatus): string {
     const statusMap: Record<HealthStatus, string> = {
-      healthy: "✓ HEALTHY",
-      warning: "⚠ WARNING",
-      unhealthy: "✗ UNHEALTHY",
+      healthy: "[OK] HEALTHY",
+      warning: "[WARN] WARNING",
+      unhealthy: "[FAIL] UNHEALTHY",
     };
     return statusMap[status] || status.toUpperCase();
   }

@@ -7,6 +7,7 @@
  * @module monitoring/health
  */
 
+import * as fs from "fs";
 import { logger } from "../util/logger";
 import { DatabaseManager } from "../persistence/database";
 import { dockerHelper } from "../util/docker-helper";
@@ -203,8 +204,6 @@ class HealthChecker {
     const startTime = Date.now();
 
     try {
-      // Get disk usage using Node.js fs
-      const fs = await import("fs");
       const stats = fs.statfsSync("/");
 
       const totalSpace = stats.bsize * stats.blocks;

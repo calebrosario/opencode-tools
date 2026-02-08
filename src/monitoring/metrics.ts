@@ -21,6 +21,7 @@ export interface CounterMetric {
 }
 
 export interface TimerMetric {
+  id: string;
   name: string;
   help: string;
   durationMs: number;
@@ -100,8 +101,9 @@ class MetricsCollector {
   public startTimer(name: string, labels: MetricLabels = {}): string {
     if (!this.enabled) return "";
 
-    const timerId = `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const timerId = `${name}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const timer: TimerMetric = {
+      id: timerId,
       name,
       help: this.getMetricHelp(name),
       durationMs: 0,
@@ -124,10 +126,8 @@ class MetricsCollector {
   public stopTimer(timerId: string): number | null {
     if (!this.enabled || !timerId) return null;
 
-    for (const [name, timers] of this.timers.entries()) {
-      const timer = timers.find((t) =>
-        t.startTime.toString().includes(timerId),
-      );
+    for (const timers of this.timers.values()) {
+      const timer = timers.find((t) => t.id === timerId);
       if (timer) {
         timer.durationMs = performance.now() - timer.startTime;
         return timer.durationMs;
