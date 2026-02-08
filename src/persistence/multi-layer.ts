@@ -228,7 +228,7 @@ export class MultiLayerPersistence {
       await fs.mkdir(dirname(decisionsPath), { recursive: true });
 
       const decisionEntry = this.formatDecision(decision);
-      await fs.appendFile(decisionsPath, decisionEntry + "\n", "utf-8");
+      await fs.appendFile(decisionsPath, decisionEntry, "utf-8");
 
       logger.info("Decision appended", { taskId });
     } catch (error) {
@@ -248,45 +248,12 @@ export class MultiLayerPersistence {
         return [];
       }
 
-      const lines = trimmedData.split("\n");
-      const decisions: string[] = [];
+      const entries = trimmedData.split(/^## /m);
+      const decisionEntries = entries
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
 
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].startsWith("## ")) {
-          if (i > 0) {
-            const decisionText = lines.slice(0, i).join("\n");
-            decisions.push(decisionText);
-          }
-          i = -1;
-        }
-      }
-
-      if (lines.length > 0 && !lines.includes("## ")) {
-        const decisionText = lines.join("\n");
-        decisions.push(decisionText);
-      }
-
-      const lines = trimmedData.split("\n");
-      const lines = trimmedData.split("\n");
-
-      const decisions: string[] = [];
-
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].startsWith("## ")) {
-          if (i > 0) {
-            const decisionText = lines.slice(0, i).join("\n");
-            decisions.push(decisionText);
-          }
-          i = -1;
-        }
-      }
-
-      if (lines.length > 0 && !lines.includes("## ")) {
-        const decisionText = lines.join("\n");
-        decisions.push(decisionText);
-      }
-
-      return decisions.map((entry) => this.parseDecision(entry));
+      return decisionEntries.map((entry) => this.parseDecision("## " + entry));
     } catch (error) {
       if ((error as any).code === "ENOENT") {
         return [];
@@ -512,13 +479,13 @@ ${metadataLine}
     const decisionTimestamp =
       (lines[0] || "").replace("## ", "") || new Date().toISOString();
 
-    const decisionAgentId = agentMatch?.split(":** ")[1] || "";
-    const decisionText = decisionMatch?.split(":** ")[1] || "";
+    const agentId = agentMatch?.replace("**Agent**:", "")?.trim() || "";
+    const decision = decisionMatch?.replace("**Decision**:", "")?.trim() || "";
 
     const decisionLineIndex = decisionMatch ? lines.indexOf(decisionMatch) : -1;
 
-    let decisionReasoning = "";
-    let decisionMetadata = "";
+    let reasoning = "";
+    let metadata = "";
 
     if (decisionLineIndex > -1) {
       const afterDecision = decisionLineIndex + 1;
@@ -528,13 +495,14 @@ ${metadataLine}
         const line = lines[i] as string;
         if (line.startsWith("**Metadata**")) {
           beforeMetadata = i;
-          decisionMetadata = line.split(":** ")[1] || "";
+          metadata =
+            line.replace("**Metadata**:", "").replace(/\`/g, "").trim() || "";
           break;
         }
       }
 
       const end = beforeMetadata > -1 ? beforeMetadata : lines.length;
-      decisionReasoning = lines
+      reasoning = lines
         .slice(afterDecision + 1, end)
         .join("\n")
         .trim();
@@ -542,18 +510,21 @@ ${metadataLine}
 
     const result: AgentDecision = {
       timestamp: decisionTimestamp,
-      agentId: decisionAgentId,
-      decision: decisionText,
-      reasoning: decisionReasoning,
+      agentId,
+      decision,
+      reasoning,
     };
 
-    if (decisionMetadata) {
-      result.metadata = JSON.parse(decisionMetadata);
+    if (metadata) {
+      try {
+        result.metadata = JSON.parse(metadata);
+      } catch (error) {
+        // Invalid JSON, ignore metadata
+      }
     }
 
     return result;
   }
-}
+export const multiLayerPersistence = MultiLayerPersistence.getInstance();}
 
-// Export singleton instance
-export const multiLayerPersistence = MultiLayerPersistence.getInstance();
+}
