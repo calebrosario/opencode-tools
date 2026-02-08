@@ -1,9 +1,27 @@
 import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterEach,
+  jest,
+} from "@jest/globals";
+import {
   DockerHelper,
   ERROR_CODES,
   dockerHelper,
 } from "../../src/util/docker-helper";
 import { OpenCodeError } from "../../src/types";
+
+jest.mock("dockerode", () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
+    createNetwork: jest.fn(),
+    getNetwork: jest.fn(),
+    listNetworks: jest.fn(),
+    info: jest.fn(),
+  })),
+}));
 
 describe("DockerHelper", () => {
   let originalEnv: any;
