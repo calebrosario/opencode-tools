@@ -32,7 +32,6 @@ describe("Monitoring System - Basic Tests", () => {
     const timerId = metrics.startTimer("test_timer", {});
     await new Promise((resolve) => setTimeout(resolve, 10));
     const duration = metrics.stopTimer(timerId);
-    expect(duration).not.toBeNull();
     expect(duration).toBeGreaterThanOrEqual(10);
   });
 
