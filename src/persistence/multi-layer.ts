@@ -525,6 +525,6 @@ ${metadataLine}
 
     return result;
   }
-export const multiLayerPersistence = MultiLayerPersistence.getInstance();}
-
 }
+
+export const multiLayerPersistence = MultiLayerPersistence.getInstance();
