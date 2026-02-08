@@ -1,4 +1,4 @@
-import Docker = require("dockerode");
+import Dockerode from "dockerode";
 import { logger } from "./logger";
 import { DOCKER_SOCKET, DOCKER_NETWORK_PREFIX } from "../config";
 import { OpenCodeError } from "../types";
@@ -29,7 +29,7 @@ export class NetworkIsolator {
   private activeNetworks = new Map<string, ContainerNetwork[]>();
 
   private constructor() {
-    this.docker = new Docker({
+    this.docker = new Dockerode({
       socketPath: DOCKER_SOCKET,
     });
   }
@@ -170,7 +170,10 @@ export class NetworkIsolator {
       if (!this.activeNetworks.has(networkId)) {
         this.activeNetworks.set(networkId, []);
       }
-      this.activeNetworks.get(networkId)!.push(containerNetwork);
+      const networkContainers = this.activeNetworks.get(networkId);
+      if (networkContainers) {
+        networkContainers.push(containerNetwork);
+      }
 
       logger.info("Container connected to isolated network", {
         containerId,
@@ -510,3 +513,12 @@ export class NetworkIsolator {
     }
   }
 }
+
+// Lazy-loaded singleton export for Jest compatibility
+let _instance: NetworkIsolator | null = null;
+export const networkIsolator = (): NetworkIsolator => {
+  if (!_instance) {
+    _instance = NetworkIsolator.getInstance();
+  }
+  return _instance;
+};

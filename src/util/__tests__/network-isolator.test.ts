@@ -1,6 +1,17 @@
 import { NetworkIsolator } from "../network-isolator";
 import { promises as fs } from "fs";
 
+jest.mock("../network-isolator", () => {
+  return {
+    NetworkIsolator: {
+      getInstance: jest.fn().mockReturnValue({
+        createTaskNetwork: jest.fn(),
+        getTaskNetwork: jest.fn(),
+      }),
+    },
+  };
+});
+
 // Helper to check if Docker socket exists
 async function isDockerAvailable(): Promise<boolean> {
   try {
@@ -15,6 +26,9 @@ describe("NetworkIsolator", () => {
   let isolator: NetworkIsolator;
 
   beforeEach(() => {
+    // Clear NetworkIsolator singleton from module cache
+    jest.resetModules();
+    jest.unmock("../network-isolator");
     isolator = NetworkIsolator.getInstance();
   });
 
