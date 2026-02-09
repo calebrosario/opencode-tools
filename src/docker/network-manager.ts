@@ -132,14 +132,16 @@ export class NetworkManager {
 
       this.initialized = true;
       logger.info("NetworkManager initialized successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to initialize NetworkManager", {
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_INITIALIZATION_FAILED,
         "Failed to initialize Network Manager",
-        { originalError: error.message },
+        { originalError: errorMessage },
       );
     }
   }
@@ -193,15 +195,17 @@ export class NetworkManager {
       });
 
       return networkId;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to create task network", {
         taskId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_CREATION_FAILED,
         `Failed to create network for task ${taskId}`,
-        { taskId, originalError: error.message },
+        { taskId, originalError: errorMessage },
       );
     }
   }
@@ -233,16 +237,18 @@ export class NetworkManager {
         containerId,
         networkId,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to connect container to network", {
         containerId,
         networkId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_CONNECTION_FAILED,
         `Failed to connect container ${containerId} to network ${networkId}`,
-        { containerId, networkId, originalError: error.message },
+        { containerId, networkId, originalError: errorMessage },
       );
     }
   }
@@ -272,9 +278,16 @@ export class NetworkManager {
         containerId,
         networkId,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorCode =
+        error && typeof error === "object" && "statusCode" in error
+          ? (error as any).statusCode
+          : undefined;
+
       // Ignore 404 errors (container or network not found)
-      if (error.statusCode === 404) {
+      if (errorCode === 404) {
         logger.warn("Container or network not found during disconnect", {
           containerId,
           networkId,
@@ -285,12 +298,12 @@ export class NetworkManager {
       logger.error("Failed to disconnect container from network", {
         containerId,
         networkId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_DISCONNECTION_FAILED,
         `Failed to disconnect container ${containerId} from network ${networkId}`,
-        { containerId, networkId, originalError: error.message },
+        { containerId, networkId, originalError: errorMessage },
       );
     }
   }
@@ -324,9 +337,16 @@ export class NetworkManager {
       this.taskNetworks.delete(taskId);
 
       logger.info("Task network removed successfully", { taskId, networkId });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorCode =
+        error && typeof error === "object" && "statusCode" in error
+          ? (error as any).statusCode
+          : undefined;
+
       // Ignore 404 errors (network not found)
-      if (error.statusCode === 404) {
+      if (errorCode === 404) {
         logger.warn("Network not found during removal", { taskId });
         this.taskNetworks.delete(taskId);
         return;
@@ -334,12 +354,12 @@ export class NetworkManager {
 
       logger.error("Failed to remove task network", {
         taskId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_REMOVAL_FAILED,
         `Failed to remove network for task ${taskId}`,
-        { taskId, originalError: error.message },
+        { taskId, originalError: errorMessage },
       );
     }
   }
@@ -374,15 +394,17 @@ export class NetworkManager {
       });
 
       return taskNetworks;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to list task networks", {
         taskId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_LIST_FAILED,
         `Failed to list networks for task ${taskId}`,
-        { taskId, originalError: error.message },
+        { taskId, originalError: errorMessage },
       );
     }
   }
@@ -401,15 +423,17 @@ export class NetworkManager {
       await this.networkIsolator.isolateNetwork(networkId, taskId || networkId);
 
       logger.info("Network isolated successfully", { networkId });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to isolate network", {
         networkId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_ISOLATION_FAILED,
         `Failed to isolate network ${networkId}`,
-        { networkId, originalError: error.message },
+        { networkId, originalError: errorMessage },
       );
     }
   }
@@ -427,15 +451,17 @@ export class NetworkManager {
       // DNS is configured per container via endpoint config
       // This method is for documentation/verification
       logger.info("DNS configuration prepared", { networkId, dnsConfig });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to configure DNS", {
         networkId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_DNS_CONFIGURATION_FAILED,
         `Failed to configure DNS for network ${networkId}`,
-        { networkId, originalError: error.message },
+        { networkId, originalError: errorMessage },
       );
     }
   }
@@ -464,15 +490,17 @@ export class NetworkManager {
       logger.debug("Network monitoring stats", { networkId, stats });
 
       return stats;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to monitor network", {
         networkId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_MONITORING_FAILED,
         `Failed to monitor network ${networkId}`,
-        { networkId, originalError: error.message },
+        { networkId, originalError: errorMessage },
       );
     }
   }
@@ -501,15 +529,17 @@ export class NetworkManager {
         ),
         containers: Object.keys(network.Containers || {}),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to get network info", {
         networkId,
-        error: error.message,
+        error: errorMessage,
       });
       throw new OpenCodeError(
         ErrorCode.NETWORK_INFO_FAILED,
         `Failed to get info for network ${networkId}`,
-        { networkId, originalError: error.message },
+        { networkId, originalError: errorMessage },
       );
     }
   }
@@ -532,10 +562,12 @@ export class NetworkManager {
         networkId,
         count: containers.length,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.warn("Failed to disconnect all containers", {
         networkId,
-        error: error.message,
+        error: errorMessage,
       });
     }
   }
@@ -573,20 +605,24 @@ export class NetworkManager {
 
           try {
             await this.docker.getNetwork(network.Id || "").remove();
-          } catch (error: any) {
+          } catch (error: unknown) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
             // Ignore errors during cleanup
             logger.warn("Failed to remove orphaned network", {
               networkId: network.Id,
-              error: error.message,
+              error: errorMessage,
             });
           }
         }
       }
 
       logger.info("Orphaned network cleanup completed");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Failed to cleanup orphaned networks", {
-        error: error.message,
+        error: errorMessage,
       });
     }
   }

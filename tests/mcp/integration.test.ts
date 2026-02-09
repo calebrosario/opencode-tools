@@ -1,13 +1,21 @@
 // MCP Server Integration Tests - Phase 2: MVP Core
 // Week 10, Day 5: MCP Integration Tests
 
-import { describe, test, expect, beforeAll, afterAll } from "@jest/globals";
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  afterAll,
+  afterEach,
+} from "@jest/globals";
 import { MCPServerEnhanced } from "../../src/mcp/server";
 import { TOOL_DEFINITIONS } from "../../src/mcp/tools";
 import { dockerHelper } from "../../src/util/docker-helper";
 
 describe("MCP Server Integration", () => {
   let server: any;
+  const createdTaskIds: string[] = [];
 
   beforeAll(async () => {
     // Skip if Docker not available
@@ -42,6 +50,25 @@ describe("MCP Server Integration", () => {
   afterAll(async () => {
     if (server) {
       await server.stop();
+    }
+  });
+
+  afterEach(async () => {
+    // Clean up tasks created during each test to ensure test isolation
+    if (server && createdTaskIds.length > 0) {
+      const deleteTool = TOOL_DEFINITIONS.find((t) => t.name === "delete_task");
+      if (deleteTool) {
+        for (const taskId of createdTaskIds) {
+          try {
+            await deleteTool.execute({ taskId });
+            console.log(`Cleaned up task: ${taskId}`);
+          } catch (error: unknown) {
+            // Ignore cleanup errors - task might not exist or already deleted
+            console.log(`Task cleanup skipped: ${taskId}`);
+          }
+        }
+      }
+      createdTaskIds.length = 0;
     }
   });
 
@@ -96,15 +123,18 @@ describe("MCP Server Integration", () => {
         (t) => t.name === "create_task_sandbox",
       );
 
+      const taskId = "test-task-1";
       const result = await createTool!.execute({
-        taskId: "test-task-1",
+        taskId,
         name: "Test Task",
         owner: "test-agent",
       });
 
+      createdTaskIds.push(taskId);
+
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
-      expect((result as any).taskId).toBe("test-task-1");
+      expect((result as any).taskId).toBe(taskId);
     });
 
     test("should execute attach_agent_to_task tool", async () => {
@@ -116,10 +146,13 @@ describe("MCP Server Integration", () => {
         (t) => t.name === "attach_agent_to_task",
       );
 
+      const taskId = "test-task-2";
       const result = await attachTool!.execute({
-        taskId: "test-task-2",
+        taskId,
         agentId: "test-agent",
       });
+
+      createdTaskIds.push(taskId);
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
@@ -135,11 +168,14 @@ describe("MCP Server Integration", () => {
         (t) => t.name === "execute_in_task",
       );
 
+      const taskId = "test-task-3";
       const result = await executeTool!.execute({
-        taskId: "test-task-3",
+        taskId,
         command: 'echo "hello world"',
         timeout: 30000,
       });
+
+      createdTaskIds.push(taskId);
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
@@ -156,13 +192,13 @@ describe("MCP Server Integration", () => {
         (t) => t.name === "create_task_sandbox",
       );
 
-      // Test with missing required parameter
       await expect(
         createTool!.execute({
           taskId: "test-task-4",
           // Missing 'name' parameter
         }),
       ).rejects.toThrow();
+      // Don't add test-task-4 to cleanup array since it wasn't created
     });
   });
 
