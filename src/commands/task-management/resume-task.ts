@@ -48,8 +48,10 @@ export const resumeTaskCommand = new Command("resume-task")
         console.log(
           "   Feature requests: https://github.com/calebrosario/agent-armor/issues/new?template=feature_request.md\n",
         );
-      } catch (error: any) {
-        console.error("❌ Failed to resume task:", error.message);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error("❌ Failed to resume task:", errorMessage);
         process.exit(1);
       }
     },

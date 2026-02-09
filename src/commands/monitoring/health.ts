@@ -99,8 +99,10 @@ export const healthCommand = new Command("health")
         console.error("[FAIL] Health check failed");
         process.exit(1);
       }
-    } catch (error: any) {
-      console.error("[FAIL] Failed to run health check:", error.message);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("[FAIL] Failed to run health check:", errorMessage);
       process.exit(1);
     }
   });

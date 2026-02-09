@@ -35,8 +35,10 @@ export const listTasksCommand = new Command("list-tasks")
         });
 
         displayTasks(tasks, options.verbose ?? false);
-      } catch (error: any) {
-        console.error("❌ Failed to list tasks:", error.message);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error("❌ Failed to list tasks:", errorMessage);
         process.exit(1);
       }
     },

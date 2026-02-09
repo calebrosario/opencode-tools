@@ -49,8 +49,10 @@ export const createTaskCommand = new Command("create-task")
         console.log(
           "   Feature requests: https://github.com/calebrosario/agent-armor/issues/new?template=feature_request.md\n",
         );
-      } catch (error: any) {
-        console.error("❌ Failed to create task:", error.message);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error("❌ Failed to create task:", errorMessage);
         process.exit(1);
       }
     },

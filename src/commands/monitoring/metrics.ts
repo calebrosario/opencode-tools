@@ -50,8 +50,10 @@ export const metricsCommand = new Command("metrics")
       }
 
       console.log("\n" + "═".repeat(60) + "\n");
-    } catch (error: any) {
-      console.error("[FAIL] Failed to get metrics:", error.message);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("[FAIL] Failed to get metrics:", errorMessage);
       process.exit(1);
     }
   });

@@ -6,6 +6,31 @@ import { logger } from "../util/logger";
 import { NetworkIsolator } from "../util/network-isolator";
 import { OpenCodeError } from "../types";
 
+/**
+ * Minimal Dockerode network interface (matches Docker API response structure)
+ * Used to safely type Docker network list/inspect responses
+ */
+interface DockerodeNetwork {
+  Id?: string;
+  Name?: string;
+  Driver?: string;
+  Scope?: string;
+  Internal?: boolean;
+  Labels?: Record<string, string>;
+  Created?: number;
+  Containers?: Record<string, any>;
+  IPAM?: {
+    Driver?: string;
+    Config?: Array<{
+      Subnet?: string;
+      Gateway?: string;
+      IPRange?: string;
+      AuxAddress?: string;
+      AuxiliaryAddresses?: Record<string, string>;
+    }>;
+  };
+}
+
 // ErrorCode constants
 const ErrorCode = {
   NETWORK_INITIALIZATION_FAILED: "NETWORK_INITIALIZATION_FAILED",
@@ -179,8 +204,13 @@ export class NetworkManager {
         },
       };
 
-      const network = await this.docker.createNetwork(networkConfig as any);
-      const networkId = network.id;
+      // Note: 'as any' cast required because NetworkConfig.ipam.config structure
+      // doesn't match Dockerode's expected IPAMConfig interface exactly.
+      // Full Dockerode interface definitions needed (task 8) to eliminate this cast.
+      const network = (await this.docker.createNetwork(
+        networkConfig as any,
+      )) as DockerodeNetwork;
+      const networkId = network.Id || "";
 
       // Track network for this task
       this.taskNetworks.set(taskId, networkId);
@@ -579,7 +609,10 @@ export class NetworkManager {
    */
   private async cleanupOrphanedNetworks(): Promise<void> {
     try {
-      const networks = await this.docker.listNetworks();
+      // Note: 'as unknown' cast because Dockerode returns NetworkInspectInfo[]
+      // which has type incompatibility with our DockerodeNetwork interface
+      // Full Dockerode interface definitions needed (task 8) to resolve this
+      const networks = (await this.docker.listNetworks()) as unknown;
 
       for (const network of networks as any[]) {
         // Check if it's a managed network
