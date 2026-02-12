@@ -32,6 +32,7 @@ export interface TaskFilters {
 // Container-related types
 export interface ContainerInfo {
   id: string;
+  shortId?: string;
   name: string;
   image: string;
   status: ContainerStatus;
@@ -39,6 +40,9 @@ export interface ContainerInfo {
   ports?: ContainerPort[];
   networks?: string[];
   resources?: ResourceLimits;
+  labels?: Record<string, string>;
+  hostname?: string;
+  workingDir?: string;
 }
 
 export type ContainerStatus =
@@ -62,6 +66,12 @@ export interface ResourceLimits {
   cpuShares?: number;
   pidsLimit?: number;
   diskSpace?: number; // MB
+  nanoCpus?: number; // 10^9 CPU shares (1e9 = 1 CPU)
+  memoryReservation?: number; // bytes
+  memorySwap?: number; // bytes
+  cpuQuota?: number; // microseconds per period
+  cpuPeriod?: number; // microseconds (100000 = 100ms)
+  blkioWeight?: number; // 10-1000
 }
 
 // Network-related types

@@ -1,19 +1,16 @@
 // Docker Manager - Full Lifecycle Implementation
 // Week 11, Task 11.1: Complete Docker Manager with Dockerode SDK
 
-import Dockerode from 'dockerode';
-import { logger } from '../util/logger';
+import Dockerode from "dockerode";
+import { logger } from "../util/logger";
 import {
   DOCKER_SOCKET,
   DOCKER_CONTAINER_PREFIX,
   CONTAINER_MEMORY_MB,
   CONTAINER_CPU_SHARES,
   CONTAINER_PIDS_LIMIT,
-} from '../config';
-import {
-  OpenCodeError,
-  ContainerStatus,
-} from '../types';
+} from "../config";
+import { OpenCodeError, ContainerStatus } from "../types";
 import type {
   ContainerConfig as DockerContainerConfig,
   ContainerInfo as DockerContainerInfo,
@@ -21,8 +18,8 @@ import type {
   LogStream,
   PruneResult,
   PortConfig,
-} from './container-config';
-import Docker from 'dockerode';
+} from "./container-config";
+import Docker from "dockerode";
 
 // Map our types to Dockerode types
 interface DockerodeContainerInfo {
@@ -71,10 +68,13 @@ interface DockerodeContainerStats {
       cache?: number;
     };
   };
-  networks?: Record<string, {
-    rx_bytes: number;
-    tx_bytes: number;
-  }>;
+  networks?: Record<
+    string,
+    {
+      rx_bytes: number;
+      tx_bytes: number;
+    }
+  >;
   blkio_stats?: {
     io_service_bytes_recursive?: Array<{
       op: string;
@@ -120,7 +120,7 @@ export class DockerManager {
       const info = await this.docker.info();
       this.initialized = true;
 
-      logger.info('✅ Connected to Docker Engine API', {
+      logger.info("✅ Connected to Docker Engine API", {
         version: info.ServerVersion,
         apiVersion: info.APIVersion,
         containers: info.Containers,
@@ -129,14 +129,14 @@ export class DockerManager {
         architecture: info.Architecture,
       });
     } catch (error: unknown) {
-      logger.error('❌ Failed to connect to Docker Engine API', {
+      logger.error("❌ Failed to connect to Docker Engine API", {
         error: error instanceof Error ? error.message : String(error),
         socketPath: DOCKER_SOCKET,
       });
       throw new OpenCodeError(
-        'DOCKER_CONNECTION_FAILED',
-        'Failed to connect to Docker Engine API',
-        { socketPath: DOCKER_SOCKET, error }
+        "DOCKER_CONNECTION_FAILED",
+        "Failed to connect to Docker Engine API",
+        { socketPath: DOCKER_SOCKET, error },
       );
     }
   }
@@ -157,7 +157,7 @@ export class DockerManager {
       // Build Dockerode create options
       const createOptions = this.buildCreateOptions(config);
 
-      logger.info('Creating container', {
+      logger.info("Creating container", {
         name: config.name,
         image: config.image,
         memory: config.resourceLimits?.memory,
@@ -167,22 +167,22 @@ export class DockerManager {
       const container = await this.docker.createContainer(createOptions);
       const containerId = container.id;
 
-      logger.info('✅ Container created', {
+      logger.info("✅ Container created", {
         containerId,
         name: config.name,
       });
 
       return containerId;
     } catch (error: unknown) {
-      logger.error('Failed to create container', {
+      logger.error("Failed to create container", {
         name: config.name,
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_CREATE_FAILED',
+        "CONTAINER_CREATE_FAILED",
         `Failed to create container: ${config.name}`,
-        { name: config.name, error }
+        { name: config.name, error },
       );
     }
   }
@@ -197,21 +197,21 @@ export class DockerManager {
 
       const container = this.docker.getContainer(containerId);
 
-      logger.info('Starting container', { containerId });
+      logger.info("Starting container", { containerId });
 
       await container.start();
 
-      logger.info('✅ Container started', { containerId });
+      logger.info("✅ Container started", { containerId });
     } catch (error: unknown) {
-      logger.error('Failed to start container', {
+      logger.error("Failed to start container", {
         containerId,
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_START_FAILED',
+        "CONTAINER_START_FAILED",
         `Failed to start container: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -221,35 +221,44 @@ export class DockerManager {
    * @param containerId Container ID
    * @param timeout Timeout in seconds (default: 10)
    */
-  public async stopContainer(containerId: string, timeout: number = 10): Promise<void> {
+  public async stopContainer(
+    containerId: string,
+    timeout: number = 10,
+  ): Promise<void> {
     try {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
 
-      logger.info('Stopping container', { containerId, timeout });
+      logger.info("Stopping container", { containerId, timeout });
 
       await container.stop({ t: timeout });
 
-      logger.info('✅ Container stopped', { containerId });
+      logger.info("✅ Container stopped", { containerId });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Ignore "container not running" errors
-      if (errorMessage.includes('is not running') || errorMessage.includes('No such container')) {
-        logger.warn('Container already stopped or does not exist', { containerId });
+      if (
+        errorMessage.includes("is not running") ||
+        errorMessage.includes("No such container")
+      ) {
+        logger.warn("Container already stopped or does not exist", {
+          containerId,
+        });
         return;
       }
 
-      logger.error('Failed to stop container', {
+      logger.error("Failed to stop container", {
         containerId,
         error: errorMessage,
       });
 
       throw new OpenCodeError(
-        'CONTAINER_STOP_FAILED',
+        "CONTAINER_STOP_FAILED",
         `Failed to stop container: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -259,27 +268,30 @@ export class DockerManager {
    * @param containerId Container ID
    * @param timeout Timeout in seconds (default: 10)
    */
-  public async restartContainer(containerId: string, timeout: number = 10): Promise<void> {
+  public async restartContainer(
+    containerId: string,
+    timeout: number = 10,
+  ): Promise<void> {
     try {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
 
-      logger.info('Restarting container', { containerId, timeout });
+      logger.info("Restarting container", { containerId, timeout });
 
       await container.restart({ t: timeout });
 
-      logger.info('✅ Container restarted', { containerId });
+      logger.info("✅ Container restarted", { containerId });
     } catch (error: unknown) {
-      logger.error('Failed to restart container', {
+      logger.error("Failed to restart container", {
         containerId,
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_RESTART_FAILED',
+        "CONTAINER_RESTART_FAILED",
         `Failed to restart container: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -294,29 +306,30 @@ export class DockerManager {
 
       const container = this.docker.getContainer(containerId);
 
-      logger.info('Pausing container', { containerId });
+      logger.info("Pausing container", { containerId });
 
       await container.pause();
 
-      logger.info('✅ Container paused', { containerId });
+      logger.info("✅ Container paused", { containerId });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Ignore "already paused" errors
-      if (errorMessage.includes('is already paused')) {
-        logger.warn('Container already paused', { containerId });
+      if (errorMessage.includes("is already paused")) {
+        logger.warn("Container already paused", { containerId });
         return;
       }
 
-      logger.error('Failed to pause container', {
+      logger.error("Failed to pause container", {
         containerId,
         error: errorMessage,
       });
 
       throw new OpenCodeError(
-        'CONTAINER_PAUSE_FAILED',
+        "CONTAINER_PAUSE_FAILED",
         `Failed to pause container: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -331,29 +344,30 @@ export class DockerManager {
 
       const container = this.docker.getContainer(containerId);
 
-      logger.info('Unpausing container', { containerId });
+      logger.info("Unpausing container", { containerId });
 
       await container.unpause();
 
-      logger.info('✅ Container unpaused', { containerId });
+      logger.info("✅ Container unpaused", { containerId });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Ignore "not paused" errors
-      if (errorMessage.includes('is not paused')) {
-        logger.warn('Container not paused', { containerId });
+      if (errorMessage.includes("is not paused")) {
+        logger.warn("Container not paused", { containerId });
         return;
       }
 
-      logger.error('Failed to unpause container', {
+      logger.error("Failed to unpause container", {
         containerId,
         error: errorMessage,
       });
 
       throw new OpenCodeError(
-        'CONTAINER_UNPAUSE_FAILED',
+        "CONTAINER_UNPAUSE_FAILED",
         `Failed to unpause container: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -363,35 +377,44 @@ export class DockerManager {
    * @param containerId Container ID
    * @param signal Signal to send (default: SIGKILL)
    */
-  public async killContainer(containerId: string, signal: string = 'SIGKILL'): Promise<void> {
+  public async killContainer(
+    containerId: string,
+    signal: string = "SIGKILL",
+  ): Promise<void> {
     try {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
 
-      logger.info('Killing container', { containerId, signal });
+      logger.info("Killing container", { containerId, signal });
 
       await container.kill({ signal });
 
-      logger.info('✅ Container killed', { containerId });
+      logger.info("✅ Container killed", { containerId });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Ignore "already stopped" errors
-      if (errorMessage.includes('is not running') || errorMessage.includes('No such container')) {
-        logger.warn('Container already stopped or does not exist', { containerId });
+      if (
+        errorMessage.includes("is not running") ||
+        errorMessage.includes("No such container")
+      ) {
+        logger.warn("Container already stopped or does not exist", {
+          containerId,
+        });
         return;
       }
 
-      logger.error('Failed to kill container', {
+      logger.error("Failed to kill container", {
         containerId,
         error: errorMessage,
       });
 
       throw new OpenCodeError(
-        'CONTAINER_KILL_FAILED',
+        "CONTAINER_KILL_FAILED",
         `Failed to kill container: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -405,36 +428,37 @@ export class DockerManager {
   public async removeContainer(
     containerId: string,
     force: boolean = false,
-    removeVolumes: boolean = false
+    removeVolumes: boolean = false,
   ): Promise<void> {
     try {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
 
-      logger.info('Removing container', { containerId, force, removeVolumes });
+      logger.info("Removing container", { containerId, force, removeVolumes });
 
       await container.remove({ v: removeVolumes, force });
 
-      logger.info('✅ Container removed', { containerId });
+      logger.info("✅ Container removed", { containerId });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Ignore "already removed" errors
-      if (errorMessage.includes('No such container')) {
-        logger.warn('Container already removed', { containerId });
+      if (errorMessage.includes("No such container")) {
+        logger.warn("Container already removed", { containerId });
         return;
       }
 
-      logger.error('Failed to remove container', {
+      logger.error("Failed to remove container", {
         containerId,
         error: errorMessage,
       });
 
       throw new OpenCodeError(
-        'CONTAINER_REMOVE_FAILED',
+        "CONTAINER_REMOVE_FAILED",
         `Failed to remove container: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -448,24 +472,26 @@ export class DockerManager {
    * @param containerId Container ID
    * @returns Container information
    */
-  public async inspectContainer(containerId: string): Promise<DockerContainerInfo> {
+  public async inspectContainer(
+    containerId: string,
+  ): Promise<DockerContainerInfo> {
     try {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
-      const info = await container.inspect() as any;
+      const info = (await container.inspect()) as any;
 
       return this.mapContainerInfo(info);
     } catch (error: unknown) {
-      logger.error('Failed to inspect container', {
+      logger.error("Failed to inspect container", {
         containerId,
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_INSPECT_FAILED',
+        "CONTAINER_INSPECT_FAILED",
         `Failed to inspect container: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -475,24 +501,26 @@ export class DockerManager {
    * @param containerId Container ID
    * @returns Container status
    */
-  public async getContainerStatus(containerId: string): Promise<ContainerStatus> {
+  public async getContainerStatus(
+    containerId: string,
+  ): Promise<ContainerStatus> {
     try {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
-      const info = await container.inspect() as any;
+      const info = (await container.inspect()) as any;
 
       return this.mapContainerStatus(info.State || "unknown");
     } catch (error: unknown) {
-      logger.error('Failed to get container status', {
+      logger.error("Failed to get container status", {
         containerId,
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_STATUS_FAILED',
+        "CONTAINER_STATUS_FAILED",
         `Failed to get container status: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -511,13 +539,12 @@ export class DockerManager {
       tail?: number;
       since?: number;
       timestamps?: boolean;
-    } = {}
+    } = {},
   ): Promise<LogStream> {
     try {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
-
 
       const logOptions = {
         stdout: options.stdout !== false,
@@ -528,7 +555,6 @@ export class DockerManager {
         follow: false,
       } as Docker.ContainerLogsOptions;
 
-
       const logs = await (container.logs as any)(logOptions);
 
       const logString = logs.toString();
@@ -538,29 +564,29 @@ export class DockerManager {
 
       if (logOptions.stdout) {
         result.stdout = logString
-          .split('\n')
+          .split("\n")
           .filter((line: string) => line && !line.startsWith("└─"))
           .map((line: string) => line.replace(/^\d+ /, ""));
       }
 
       if (logOptions.stderr) {
         result.stderr = logString
-          .split('\n')
+          .split("\n")
           .filter((line: string) => line && line.startsWith("└─"))
           .map((line: string) => line.replace(/^└─\d+ /, ""));
       }
 
       return result;
     } catch (error: unknown) {
-      logger.error('Failed to get container logs', {
+      logger.error("Failed to get container logs", {
         containerId,
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_LOGS_FAILED',
+        "CONTAINER_LOGS_FAILED",
         `Failed to get container logs: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -570,24 +596,33 @@ export class DockerManager {
    * @param containerId Container ID
    * @returns Container statistics
    */
-  public async getContainerStats(containerId: string): Promise<DockerContainerStats> {
+  public async getContainerStats(
+    containerId: string,
+  ): Promise<DockerContainerStats> {
     try {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
-      const stats = (await container.stats({ stream: false })) as DockerodeContainerStats;
+      const stats = (await container.stats({
+        stream: false,
+      })) as DockerodeContainerStats;
 
-      return this.mapContainerStats(stats);
+      // Get container info for name
+      const info = await container.inspect();
+      const containerName =
+        info.Name?.replace(/^\//, "") || containerId.substring(0, 12);
+
+      return this.mapContainerStats(stats, containerId, containerName);
     } catch (error: unknown) {
-      logger.error('Failed to get container stats', {
+      logger.error("Failed to get container stats", {
         containerId,
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_STATS_FAILED',
+        "CONTAINER_STATS_FAILED",
         `Failed to get container stats: ${containerId}`,
-        { containerId, error }
+        { containerId, error },
       );
     }
   }
@@ -601,22 +636,28 @@ export class DockerManager {
    * @param all Include stopped containers
    * @returns List of container information
    */
-  public async listContainers(all: boolean = false): Promise<DockerContainerInfo[]> {
+  public async listContainers(
+    all: boolean = false,
+  ): Promise<DockerContainerInfo[]> {
     try {
       await this.ensureInitialized();
 
       const containers = await this.docker.listContainers({ all });
 
-      return containers.map(container => this.mapListedContainerInfo(container as unknown as DockerodeContainerInfo));
+      return containers.map((container) =>
+        this.mapListedContainerInfo(
+          container as unknown as DockerodeContainerInfo,
+        ),
+      );
     } catch (error: unknown) {
-      logger.error('Failed to list containers', {
+      logger.error("Failed to list containers", {
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_LIST_FAILED',
-        'Failed to list containers',
-        { error }
+        "CONTAINER_LIST_FAILED",
+        "Failed to list containers",
+        { error },
       );
     }
   }
@@ -629,11 +670,11 @@ export class DockerManager {
     try {
       await this.ensureInitialized();
 
-      logger.info('Pruning stopped containers');
+      logger.info("Pruning stopped containers");
 
       const result = await this.docker.pruneContainers();
 
-      logger.info('✅ Containers pruned', {
+      logger.info("✅ Containers pruned", {
         containersDeleted: result.ContainersDeleted?.length || 0,
         spaceReclaimed: result.SpaceReclaimed || 0,
       });
@@ -643,14 +684,14 @@ export class DockerManager {
         spaceReclaimed: result.SpaceReclaimed || 0,
       };
     } catch (error: unknown) {
-      logger.error('Failed to prune containers', {
+      logger.error("Failed to prune containers", {
         error: error instanceof Error ? error.message : String(error),
       });
 
       throw new OpenCodeError(
-        'CONTAINER_PRUNE_FAILED',
-        'Failed to prune containers',
-        { error }
+        "CONTAINER_PRUNE_FAILED",
+        "Failed to prune containers",
+        { error },
       );
     }
   }
@@ -671,8 +712,30 @@ export class DockerManager {
   /**
    * Build Dockerode create options from ContainerConfig
    */
-  private buildCreateOptions(config: DockerContainerConfig): Docker.ContainerCreateOptions {
-    const { name, image, command, entrypoint, workingDir, env, mounts, ports, network, networkAliases, dns, extraHosts, resourceLimits, security, restartPolicy, hostname, labels, logOptions, autoRemove } = config;
+  private buildCreateOptions(
+    config: DockerContainerConfig,
+  ): Docker.ContainerCreateOptions {
+    const {
+      name,
+      image,
+      command,
+      entrypoint,
+      workingDir,
+      env,
+      mounts,
+      ports,
+      network,
+      networkAliases,
+      dns,
+      extraHosts,
+      resourceLimits,
+      security,
+      restartPolicy,
+      hostname,
+      labels,
+      logOptions,
+      autoRemove,
+    } = config;
 
     // Default resource limits from config
     const defaultMemory = CONTAINER_MEMORY_MB * 1024 * 1024;
@@ -685,7 +748,10 @@ export class DockerManager {
       : [];
 
     // Build port bindings
-    const portBindings: Record<string, Array<{ HostPort: string; HostIp?: string }>> = {};
+    const portBindings: Record<
+      string,
+      Array<{ HostPort: string; HostIp?: string }>
+    > = {};
     const exposedPorts: Record<string, {}> = {};
 
     if (ports) {
@@ -695,14 +761,14 @@ export class DockerManager {
 
         if (portBindings[portKey]) {
           portBindings[portKey].push({
-            HostPort: port.hostPort?.toString() || '',
-            HostIp: port.hostIp || '',
+            HostPort: port.hostPort?.toString() || "",
+            HostIp: port.hostIp || "",
           });
         } else {
           portBindings[portKey] = [
             {
-              HostPort: port.hostPort?.toString() || '',
-              HostIp: port.hostIp || '',
+              HostPort: port.hostPort?.toString() || "",
+              HostIp: port.hostIp || "",
             },
           ];
         }
@@ -713,8 +779,8 @@ export class DockerManager {
     const binds: string[] = [];
     if (mounts) {
       for (const mount of mounts) {
-        if (mount.type === 'bind' || mount.type === 'volume') {
-          const readOnly = mount.readOnly ? ':ro' : '';
+        if (mount.type === "bind" || mount.type === "volume") {
+          const readOnly = mount.readOnly ? ":ro" : "";
           binds.push(`${mount.source}:${mount.target}${readOnly}`);
         }
       }
@@ -730,13 +796,13 @@ export class DockerManager {
             Name: restartPolicy.name,
             MaximumRetryCount: restartPolicy.maximumRetryCount,
           }
-        : { Name: 'no' },
+        : { Name: "no" },
       LogConfig: logOptions
         ? {
-            Type: logOptions.driver || 'json-file',
+            Type: logOptions.driver || "json-file",
             Config: {
-              'max-size': logOptions.maxSize ? `${logOptions.maxSize}b` : '10m',
-              'max-file': (logOptions.maxFiles || 3).toString(),
+              "max-size": logOptions.maxSize ? `${logOptions.maxSize}b` : "10m",
+              "max-file": (logOptions.maxFiles || 3).toString(),
             },
           }
         : undefined,
@@ -781,19 +847,21 @@ export class DockerManager {
       Entrypoint: entrypoint,
       WorkingDir: workingDir,
       Env: envArray,
-      ExposedPorts: Object.keys(exposedPorts).length > 0 ? exposedPorts : undefined,
+      ExposedPorts:
+        Object.keys(exposedPorts).length > 0 ? exposedPorts : undefined,
       HostConfig: hostConfig,
       Labels: labels,
       Hostname: hostname,
-      NetworkingConfig: (network || networkAliases)
-        ? {
-            EndpointsConfig: {
-              [(network || 'bridge')]: {
-                Aliases: networkAliases,
+      NetworkingConfig:
+        network || networkAliases
+          ? {
+              EndpointsConfig: {
+                [network || "bridge"]: {
+                  Aliases: networkAliases,
+                },
               },
-            },
-          }
-        : undefined,
+            }
+          : undefined,
     };
 
     // Apply user and security options
@@ -813,7 +881,7 @@ export class DockerManager {
 
     if (security?.noNewPrivileges) {
       hostConfig.SecurityOpt = hostConfig.SecurityOpt || [];
-      hostConfig.SecurityOpt.push('no-new-privileges');
+      hostConfig.SecurityOpt.push("no-new-privileges");
     }
 
     return createOptions;
@@ -850,7 +918,9 @@ export class DockerManager {
   /**
    * Map listed container info to our ContainerInfo type
    */
-  private mapListedContainerInfo(info: DockerodeContainerInfo): DockerContainerInfo {
+  private mapListedContainerInfo(
+    info: DockerodeContainerInfo,
+  ): DockerContainerInfo {
     return this.mapContainerInfo(info);
   }
 
@@ -859,25 +929,29 @@ export class DockerManager {
    */
   private parseContainerPorts(info: DockerodeContainerInfo): PortConfig[] {
     const ports: PortConfig[] = [];
-    
+
     const networkSettings = info.NetworkSettings as any;
     if (networkSettings?.Ports) {
-      for (const [containerPort, portBindings] of Object.entries(networkSettings.Ports)) {
-        const parts = containerPort.split('/');
+      for (const [containerPort, portBindings] of Object.entries(
+        networkSettings.Ports,
+      )) {
+        const parts = containerPort.split("/");
         const portStr = parts[0] || containerPort;
         const protocol = parts[1] as string | undefined;
         const portNumber = parseInt(portStr, 10);
-        
+
         for (const binding of (portBindings || []) as any[]) {
           ports.push({
             containerPort: portNumber,
-            hostPort: binding.HostPort ? parseInt(binding.HostPort, 10) : undefined,
-            protocol: (parts[1] || 'tcp') as 'tcp' | 'udp',
+            hostPort: binding.HostPort
+              ? parseInt(binding.HostPort, 10)
+              : undefined,
+            protocol: (parts[1] || "tcp") as "tcp" | "udp",
           });
         }
       }
     }
-    
+
     return ports;
   }
 
@@ -886,37 +960,48 @@ export class DockerManager {
    */
   private mapContainerStatus(state: string): ContainerStatus {
     const statusMap: Record<string, ContainerStatus> = {
-      created: 'created',
-      running: 'running',
-      paused: 'paused',
-      restarting: 'restarting',
-      removing: 'removing',
-      exited: 'exited',
-      dead: 'dead',
+      created: "created",
+      running: "running",
+      paused: "paused",
+      restarting: "restarting",
+      removing: "removing",
+      exited: "exited",
+      dead: "dead",
     };
 
-    return statusMap[state.toLowerCase()] || 'dead';
+    return statusMap[state.toLowerCase()] || "dead";
   }
 
   /**
    * Map Dockerode stats to our ContainerStats type
    */
-  private mapContainerStats(stats: DockerodeContainerStats): DockerContainerStats {
+  private mapContainerStats(
+    stats: DockerodeContainerStats,
+    containerId: string,
+    containerName: string,
+  ): DockerContainerStats {
     // Calculate CPU percentage
-    const cpuDelta = stats.precpu_stats?.cpu_usage?.total_usage !== undefined
-      ? stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage
-      : 0;
-    const systemDelta = stats.precpu_stats?.system_cpu_usage !== undefined
-      ? stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage
-      : 0;
-    const cpuPercent = systemDelta > 0 ? (cpuDelta / systemDelta) * 100 * stats.cpu_stats.online_cpus : 0;
+    const cpuDelta =
+      stats.precpu_stats?.cpu_usage?.total_usage !== undefined
+        ? stats.cpu_stats.cpu_usage.total_usage -
+          stats.precpu_stats.cpu_usage.total_usage
+        : 0;
+    const systemDelta =
+      stats.precpu_stats?.system_cpu_usage !== undefined
+        ? stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage
+        : 0;
+    const cpuPercent =
+      systemDelta > 0
+        ? (cpuDelta / systemDelta) * 100 * stats.cpu_stats.online_cpus
+        : 0;
 
     // Calculate memory usage
     const memoryUsage = stats.memory_stats.usage || 0;
     const memoryLimit = stats.memory_stats.limit || 1;
     const memoryCache = stats.memory_stats.stats?.cache || 0;
     const actualMemoryUsage = memoryUsage - memoryCache;
-    const memoryPercent = memoryLimit > 0 ? (actualMemoryUsage / memoryLimit) * 100 : 0;
+    const memoryPercent =
+      memoryLimit > 0 ? (actualMemoryUsage / memoryLimit) * 100 : 0;
 
     // Calculate network stats
     let networkRxBytes = 0;
@@ -933,15 +1018,17 @@ export class DockerManager {
     let blockWriteBytes = 0;
     if (stats.blkio_stats?.io_service_bytes_recursive) {
       for (const io of stats.blkio_stats.io_service_bytes_recursive) {
-        if (io.op === 'read' || io.op === 'Read') {
+        if (io.op === "read" || io.op === "Read") {
           blockReadBytes += io.value;
-        } else if (io.op === 'write' || io.op === 'Write') {
+        } else if (io.op === "write" || io.op === "Write") {
           blockWriteBytes += io.value;
         }
       }
     }
 
     return {
+      id: containerId,
+      name: containerName,
       cpuPercent: Math.round(cpuPercent * 100) / 100,
       memoryUsage: actualMemoryUsage,
       memoryLimit,
@@ -956,6 +1043,10 @@ export class DockerManager {
 }
 
 // Initialize Docker Manager
-DockerManager.getInstance().initialize().catch((error) => {
-  logger.error('Failed to initialize Docker Manager', { error: error instanceof Error ? error.message : String(error) });
-});
+DockerManager.getInstance()
+  .initialize()
+  .catch((error) => {
+    logger.error("Failed to initialize Docker Manager", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
