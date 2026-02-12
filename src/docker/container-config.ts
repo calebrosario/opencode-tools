@@ -26,6 +26,40 @@ export interface SecurityConfig {
   seccompProfile?: string;
   appArmorProfile?: string;
   noNewPrivileges?: boolean;
+  privileged?: boolean;
+}
+
+// Docker volume configuration
+export interface VolumeConfig {
+  source?: string; // Volume name or host path
+  target: string; // Container path
+  type?: "volume" | "bind" | "tmpfs";
+  readOnly?: boolean;
+  consistency?: "default" | "consistent" | "cached" | "delegated";
+}
+
+// Health check configuration
+export interface HealthCheckConfig {
+  test?: string[] | string; // Command to run
+  interval?: number; // Nanoseconds between checks
+  timeout?: number; // Nanoseconds before timeout
+  retries?: number; // Number of retries before unhealthy
+  startPeriod?: number; // Nanoseconds to wait before starting checks
+}
+
+// Docker container log configuration (driver-level settings)
+export interface ContainerLogConfig {
+  driver?:
+    | "json-file"
+    | "syslog"
+    | "journald"
+    | "gelf"
+    | "fluentd"
+    | "awslogs"
+    | "splunk"
+    | "etwlogs"
+    | "none";
+  config?: Record<string, string | number>;
 }
 
 // Log configuration
@@ -60,7 +94,7 @@ export interface ContainerConfig {
   workingDir?: string;
   env?: Record<string, string>;
   mounts?: Mount[];
-  volumes?: any[];
+  volumes?: VolumeConfig[];
   ports?: PortConfig[];
   network?: string;
   networkAliases?: string[];
@@ -74,8 +108,8 @@ export interface ContainerConfig {
   autoRemove?: boolean;
   labels?: Record<string, string>;
   restartPolicy?: RestartPolicyConfig;
-  healthCheck?: any;
-  logConfig?: any;
+  healthCheck?: HealthCheckConfig;
+  logConfig?: ContainerLogConfig;
 }
 
 // Container statistics (from Docker stats API)
