@@ -1,9 +1,14 @@
 // Submodule Creator Hook - Phase 2: Edge Cases
 // Week 15, Day 3: Git Submodule Conflict Detection
 
-import { logger } from '../../util/logger';
-import { AfterTaskStartHook } from '../task-lifecycle';
-import { getWorkspacePath, getSubmoduleStatus, resolveSubmoduleConflict } from '../../util/git-operations';
+import { exec } from "child_process";
+import { logger } from "../../util/logger";
+import { AfterTaskStartHook } from "../task-lifecycle";
+import {
+  getWorkspacePath,
+  getSubmoduleStatus,
+  resolveSubmoduleConflict,
+} from "../../util/git-operations";
 
 /**
  * Create Git submodule for task memory with conflict detection
@@ -20,10 +25,10 @@ import { getWorkspacePath, getSubmoduleStatus, resolveSubmoduleConflict } from '
  */
 export function createSubmoduleCreatorHook(): AfterTaskStartHook {
   return async (taskId: string, agentId: string) => {
-    const taskMemoryPath = '.task-memory';
+    const taskMemoryPath = ".task-memory";
     const wsPath = getWorkspacePath(taskId);
 
-    logger.info('Creating task memory submodule with conflict detection', {
+    logger.info("Creating task memory submodule with conflict detection", {
       taskId,
       taskMemoryPath,
       agentId,
@@ -33,15 +38,15 @@ export function createSubmoduleCreatorHook(): AfterTaskStartHook {
       // Check submodule status before creating
       const status = await getSubmoduleStatus(wsPath, taskMemoryPath);
 
-      logger.info('Submodule status', {
+      logger.info("Submodule status", {
         taskId,
         taskMemoryPath,
         status,
       });
 
       // If submodule already exists and has conflicts
-      if (status !== 'clean' && status !== 'error') {
-        logger.warn('Submodule has conflicts, resolving', {
+      if (status !== "clean" && status !== "error") {
+        logger.warn("Submodule has conflicts, resolving", {
           taskId,
           status,
         });
@@ -50,22 +55,24 @@ export function createSubmoduleCreatorHook(): AfterTaskStartHook {
         const resolution = await resolveSubmoduleConflict(
           wsPath,
           taskMemoryPath,
-          'rebase'
+          "rebase",
         );
 
         if (resolution.success) {
-          logger.info('Submodule conflict resolved', {
+          logger.info("Submodule conflict resolved", {
             taskId,
             resolution: resolution.resolution,
             status: resolution.status,
           });
         } else {
-          logger.error('Failed to resolve submodule conflict', {
+          logger.error("Failed to resolve submodule conflict", {
             taskId,
             error: resolution.error,
           });
 
-          throw new Error(`Submodule conflict resolution failed: ${resolution.error}`);
+          throw new Error(
+            `Submodule conflict resolution failed: ${resolution.error}`,
+          );
         }
       }
 
@@ -77,8 +84,8 @@ export function createSubmoduleCreatorHook(): AfterTaskStartHook {
         });
       } catch (error: any) {
         // If submodule already exists, git add will fail
-        if (!error.message?.includes('already exists in the index')) {
-          logger.debug('Submodule already exists, updating', {
+        if (!error.message?.includes("already exists in the index")) {
+          logger.debug("Submodule already exists, updating", {
             taskId,
             taskMemoryPath,
           });
@@ -88,19 +95,20 @@ export function createSubmoduleCreatorHook(): AfterTaskStartHook {
       }
 
       // Initialize and update submodule
-      await exec('git submodule update --init --recursive', {
+      await exec("git submodule update --init --recursive", {
         cwd: wsPath,
         timeout: 60000,
       });
 
-      logger.info('Task memory submodule created', {
+      logger.info("Task memory submodule created", {
         taskId,
         taskMemoryPath,
         agentId,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Failed to create task memory submodule', {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger.error("Failed to create task memory submodule", {
         taskId,
         taskMemoryPath,
         error: errorMessage,
@@ -108,7 +116,5 @@ export function createSubmoduleCreatorHook(): AfterTaskStartHook {
 
       throw new Error(`Failed to create submodule: ${errorMessage}`);
     }
-  };
-}
   };
 }

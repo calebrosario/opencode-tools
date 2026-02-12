@@ -20,7 +20,8 @@ export type TaskStatus =
   | "running"
   | "completed"
   | "failed"
-  | "cancelled";
+  | "cancelled"
+  | "interrupted"; // Session interruption (signal, timeout, disconnect)
 
 export interface TaskFilters {
   status?: TaskStatus;
@@ -39,6 +40,10 @@ export interface ContainerInfo {
   ports?: ContainerPort[];
   networks?: string[];
   resources?: ResourceLimits;
+  labels?: Record<string, string>;
+  hostname?: string;
+  workingDir?: string;
+  shortId?: string;
 }
 
 export type ContainerStatus =
@@ -150,6 +155,32 @@ export class OpenCodeError extends Error {
     this.details = details;
     this.name = "OpenCodeError";
   }
+}
+
+// Session interruption types (Edge Case 4)
+export interface InterruptionEvent {
+  id: string;
+  timestamp: Date;
+  type: InterruptionType;
+  source: "signal" | "timeout" | "disconnect" | "error";
+  signal?: "SIGINT" | "SIGTERM" | "SIGHUP";
+  reason?: string;
+  affectedTasks: string[];
+  stateSaved: boolean;
+}
+
+export type InterruptionType = "graceful" | "immediate";
+
+export interface ResumeOptions {
+  taskId: string;
+  fromCheckpoint?: boolean;
+  skipInterruptedHooks?: boolean;
+}
+
+export interface HeartbeatConfig {
+  enabled: boolean;
+  interval: number;
+  timeout: number;
 }
 
 // Configuration types

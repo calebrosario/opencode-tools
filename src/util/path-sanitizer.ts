@@ -5,8 +5,8 @@
 // - Problem: Invalid/malicious paths can cause security vulnerabilities or data loss
 // - Solution: Validate and sanitize paths to prevent traversal and ensure valid characters
 
-import * as path from 'path';
-import { logger } from './logger';
+import * as path from "path";
+import { logger } from "./logger";
 
 /**
  * Validation result
@@ -46,16 +46,44 @@ const DEFAULT_CONFIG: SanitizationConfig = {
     windows: {
       driveLetters: /^[A-Za-z]:$/,
       reservedNames: [
-        'CON', 'PRN', 'AUX', 'NUL', 'COM1-9', 'LPT1-9',
-        'COM2-9', 'LPT2-9', 'CLOCK$', 'CONIN$', 'OUT$',
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        "COM1-9",
+        "LPT1-9",
+        "COM2-9",
+        "LPT2-9",
+        "CLOCK$",
+        "CONIN$",
+        "OUT$",
       ],
     },
     unix: {
       reservedNames: [
-        '/dev', '/proc', '/sys', '/root', '/home', '/etc',
-        'tmp', 'var', 'run', 'usr', 'bin', 'sbin',
-        'opt', 'mnt', 'media', 'srv', 'boot', 'lib',
-        'lost+found', '.lock', '.git', '.env', '.vscode',
+        "/dev",
+        "/proc",
+        "/sys",
+        "/root",
+        "/home",
+        "/etc",
+        "tmp",
+        "var",
+        "run",
+        "usr",
+        "bin",
+        "sbin",
+        "opt",
+        "mnt",
+        "media",
+        "srv",
+        "boot",
+        "lib",
+        "lost+found",
+        ".lock",
+        ".git",
+        ".env",
+        ".vscode",
       ],
     },
   },
@@ -66,20 +94,30 @@ const DEFAULT_CONFIG: SanitizationConfig = {
  */
 export function containsReservedName(
   filePath: string,
-  config: SanitizationConfig = DEFAULT_CONFIG
+  config: SanitizationConfig = DEFAULT_CONFIG,
 ): boolean {
   const basename = path.basename(filePath);
 
-  // Check platform-specific reserved names
   const platform = process.platform;
-  if (platform === 'win32' && config.osSpecific?.windows) {
-    const { driveLetters, reservedNames } = config.osSpecific.windows;
-    const drive = basename.match(driveLetters)?.[0];
-    return drive && reservedNames.includes(drive.toUpperCase());
+  if (platform === "win32" && config.osSpecific?.windows) {
+    const winConfig = config.osSpecific.windows;
+    const driveLetters = winConfig.driveLetters;
+    const reservedNames = winConfig.reservedNames || [];
+
+    if (driveLetters) {
+      const drive = basename.match(driveLetters)?.[0];
+      if (drive && reservedNames.includes(drive.toUpperCase())) {
+        return true;
+      }
+    }
+    return reservedNames.includes(basename.toUpperCase());
   }
 
-  if (platform === 'linux' || platform === 'darwin' || platform === 'freebsd') {
-    const { reservedNames } = config.osSpecific.unix;
+  if (
+    (platform === "linux" || platform === "darwin" || platform === "freebsd") &&
+    config.osSpecific?.unix
+  ) {
+    const reservedNames = config.osSpecific.unix.reservedNames || [];
     return reservedNames.includes(basename);
   }
 
@@ -91,19 +129,20 @@ export function containsReservedName(
  */
 export function isPathTraversal(filePath: string): boolean {
   // Check for common path traversal patterns
-  const normalized = filePath.replace(/\\/+/g, '/');
+  // Normalize path separators to forward slashes
+  const normalized = filePath.replace(/\\+/g, "/");
 
   const traversalPatterns = [
-    /\.\.\//,  // Relative parent directory
-    /\.\.\.\./,  // Multiple parent directories
-    /~\.\.\.\./,  // User home traversal
-  /\/\.\.\.\//,  // Root directory traversal
-  /%2e%2e%2f%2e%2e%2e%2f/,  // Encoded null byte
-    /%2e%2e%2f%2e%2e%2f/,  // Encoded slash
-    /%252e%252f%252f/,  // Encoded backslash
+    /\.\.\//, // Relative parent directory
+    /\.\.\.\./, // Multiple parent directories
+    /~\.\.\.\./, // User home traversal
+    /\/\.\.\.\//, // Root directory traversal
+    /%2e%2e%2f%2e%2e%2e%2f/, // Encoded null byte
+    /%2e%2e%2f%2e%2e%2f/, // Encoded slash
+    /%252e%252f%252f/, // Encoded backslash
   ];
 
-  return traversalPatterns.some(pattern => pattern.test(normalized));
+  return traversalPatterns.some((pattern) => pattern.test(normalized));
 }
 
 /**
@@ -111,48 +150,45 @@ export function isPathTraversal(filePath: string): boolean {
  */
 export function sanitizePath(
   filePath: string,
-  config: SanitizationConfig = DEFAULT_CONFIG
+  config: SanitizationConfig = DEFAULT_CONFIG,
 ): string {
   let sanitized = filePath.trim();
 
-  // Apply OS-specific character filtering
   const platform = process.platform;
-  if (platform === 'win32' && config.osSpecific?.windows) {
-    const { allowedChars, reservedNames } = config.osSpecific.windows;
-    const driveLetter = sanitized.match(allowedChars)?.[0];
-    if (driveLetter) {
-      // Keep drive letter and remove invalid chars from the rest
-      sanitized = driveLetter + sanitized.slice(1).replace(new RegExp(`[^${allowedChars.source}]`, 'g'));
+  if (platform === "win32" && config.osSpecific?.windows) {
+    const winConfig = config.osSpecific.windows;
+    const allowedChars = winConfig.driveLetters;
+    const reservedNames = winConfig.reservedNames || [];
+
+    if (allowedChars) {
+      const driveLetter = sanitized.match(allowedChars)?.[0];
+      if (driveLetter) {
+        const charSource = config.allowedChars?.source || "a-zA-Z0-9._-";
+        sanitized =
+          driveLetter +
+          sanitized.slice(1).replace(new RegExp(`[^${charSource}]`, "g"), "");
+      }
     }
 
-    // Remove reserved names
     const normalized = path.normalize(sanitized);
     const parts = normalized.split(path.sep);
-    const filteredParts = parts.filter(part => {
-      if (config.osSpecific?.windows?.reservedNames) {
-        const { reservedNames } = config.osSpecific.windows;
-        return !reservedNames.includes(part.toUpperCase());
-      }
-      if (config.osSpecific?.unix?.reservedNames) {
-        const { reservedNames } = config.osSpecific.unix;
-        return !reservedNames.includes(part);
-      }
-      return part !== '';
-    });
+    const filteredParts = parts.filter(
+      (part) => !reservedNames.includes(part.toUpperCase()) && part !== "",
+    );
 
     sanitized = filteredParts.join(path.sep);
+  }
 
-    // Enforce max length
-    if (config.maxPathLength && sanitized.length > config.maxPathLength) {
-      sanitized = sanitized.substring(0, config.maxPathLength);
-      logger.warn('Path truncated to max length', {
-        original: filePath,
-        max: config.maxPathLength,
-        truncated: sanitized,
-      });
-    }
+  if (config.maxPathLength && sanitized.length > config.maxPathLength) {
+    sanitized = sanitized.substring(0, config.maxPathLength);
+    logger.warn("Path truncated to max length", {
+      original: filePath,
+      max: config.maxPathLength,
+      truncated: sanitized,
+    });
+  }
 
-    return sanitized;
+  return sanitized;
 }
 
 /**
@@ -160,9 +196,9 @@ export function sanitizePath(
  */
 export function validatePath(
   filePath: string,
-  config: SanitizationConfig = DEFAULT_CONFIG
+  config: SanitizationConfig = DEFAULT_CONFIG,
 ): PathValidationResult {
-  const result: {
+  const result: PathValidationResult = {
     valid: false,
     sanitized: undefined,
     original: filePath,
@@ -172,25 +208,25 @@ export function validatePath(
   try {
     // Check for empty path
     if (!filePath || filePath.trim().length === 0) {
-      result.error = 'Path is empty';
+      result.error = "Path is empty";
       return result;
     }
 
     // Check for path traversal
     if (isPathTraversal(filePath)) {
-      result.error = 'Path traversal detected';
+      result.error = "Path traversal detected";
       return result;
     }
 
     // Check for reserved names
     if (containsReservedName(filePath, config)) {
-      result.error = 'Path contains reserved name';
+      result.error = "Path contains reserved name";
       return result;
     }
 
     // Check absolute path restrictions
     if (!config.allowAbsolutePaths && path.isAbsolute(filePath)) {
-      result.error = 'Absolute paths not allowed';
+      result.error = "Absolute paths not allowed";
       return result;
     }
 
@@ -202,14 +238,14 @@ export function validatePath(
 
     // Check for invalid characters
     if (config.allowedChars && !config.allowedChars.test(filePath)) {
-      result.error = 'Path contains invalid characters';
+      result.error = "Path contains invalid characters";
       return result;
     }
 
     // Check for reject patterns
-    for (const pattern of (config.rejectPatterns || [])) {
+    for (const pattern of config.rejectPatterns || []) {
       if (pattern.test(filePath)) {
-        result.error = 'Path matches reject pattern';
+        result.error = "Path matches reject pattern";
         return result;
       }
     }
@@ -219,7 +255,10 @@ export function validatePath(
     return result;
   } catch (error: any) {
     result.error = error instanceof Error ? error.message : String(error);
-    logger.error('Path validation failed', { path: filePath, error: result.error });
+    logger.error("Path validation failed", {
+      path: filePath,
+      error: result.error,
+    });
     return result;
   }
 }
@@ -228,8 +267,12 @@ export function validatePath(
  * Get task workspace path
  * Combines base path with task ID
  */
-export function getTaskWorkspacePath(taskId: string, basePath?: string): string {
-  const workspaceBase = basePath || process.env.OPENCODE_WORKSPACE || '/tmp/opencode-worktrees';
+export function getTaskWorkspacePath(
+  taskId: string,
+  basePath?: string,
+): string {
+  const workspaceBase =
+    basePath || process.env.OPENCODE_WORKSPACE || "/tmp/opencode-worktrees";
   return path.join(workspaceBase, taskId);
 }
 
@@ -237,20 +280,27 @@ export function getTaskWorkspacePath(taskId: string, basePath?: string): string 
  * Normalize path for cross-platform compatibility
  */
 export function normalizePath(filePath: string): string {
-  return path.normalize(filePath.replace(/\\/g, '/'));
+  return path.normalize(filePath.replace(/\\/g, "/"));
 }
 
 /**
  * Resolve path safely (resolves symlinks and parent directory references)
  */
-export function safeResolvePath(basePath: string, relativePath: string): string {
+export function safeResolvePath(
+  basePath: string,
+  relativePath: string,
+): string {
   const resolved = path.resolve(basePath, relativePath);
   const normalized = normalizePath(resolved);
 
   // Ensure resolved path is within allowed scope
-  const workspaceBase = process.env.OPENCODE_WORKSPACE || '/tmp/opencode-worktrees';
-  if (!path.normalize(normalized).startsWith(workspaceBase) && !path.isAbsolute(relativePath)) {
-    logger.warn('Resolved path outside workspace', {
+  const workspaceBase =
+    process.env.OPENCODE_WORKSPACE || "/tmp/opencode-worktrees";
+  if (
+    !path.normalize(normalized).startsWith(workspaceBase) &&
+    !path.isAbsolute(relativePath)
+  ) {
+    logger.warn("Resolved path outside workspace", {
       basePath,
       relativePath,
       resolved: normalized,
@@ -264,7 +314,8 @@ export function safeResolvePath(basePath: string, relativePath: string): string 
  * Check if path is within task workspace
  */
 export function isInTaskWorkspace(filePath: string, taskId: string): boolean {
-  const workspaceBase = process.env.OPENCODE_WORKSPACE || '/tmp/opencode-worktrees';
+  const workspaceBase =
+    process.env.OPENCODE_WORKSPACE || "/tmp/opencode-worktrees";
   const taskWorkspace = path.join(workspaceBase, taskId);
   const resolved = path.resolve(filePath);
 
