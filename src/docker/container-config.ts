@@ -1,4 +1,4 @@
-import { ResourceLimits, ContainerStatus, ContainerInfo } from "../types";
+import type { ResourceLimits, ContainerStatus, ContainerInfo } from "../types";
 
 // Port configuration for container
 export interface PortConfig {
@@ -149,9 +149,5 @@ export interface PruneResult {
   spaceReclaimed: number;
 }
 
-// Re-export ContainerInfo and ContainerResources from types
-export type {
-  ContainerInfo,
-  ContainerStatus,
-  ContainerResources,
-} from "../types";
+// Re-export ContainerInfo from types
+export type { ContainerInfo, ContainerStatus } from "../types";

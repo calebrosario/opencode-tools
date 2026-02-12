@@ -603,14 +603,16 @@ export class DockerManager {
       await this.ensureInitialized();
 
       const container = this.docker.getContainer(containerId);
-      const [stats, inspect] = await Promise.all([
-        container.stats({
-          stream: false,
-        }) as Promise<DockerodeContainerStats>,
-        container.inspect() as Promise<{ Name: string }>,
-      ]);
+      const stats = (await container.stats({
+        stream: false,
+      })) as DockerodeContainerStats;
 
-      return this.mapContainerStats(stats, containerId, inspect.Name);
+      // Get container info for name
+      const info = await container.inspect();
+      const containerName =
+        info.Name?.replace(/^\//, "") || containerId.substring(0, 12);
+
+      return this.mapContainerStats(stats, containerId, containerName);
     } catch (error: unknown) {
       logger.error("Failed to get container stats", {
         containerId,

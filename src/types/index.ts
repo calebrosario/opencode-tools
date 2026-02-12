@@ -32,23 +32,17 @@ export interface TaskFilters {
 // Container-related types
 export interface ContainerInfo {
   id: string;
-  name: string;
   shortId?: string;
+  name: string;
   image: string;
   status: ContainerStatus;
   createdAt: Date;
   ports?: ContainerPort[];
   networks?: string[];
-  resources?: ContainerResources;
+  resources?: ResourceLimits;
   labels?: Record<string, string>;
   hostname?: string;
   workingDir?: string;
-}
-
-export interface ContainerResources {
-  memory?: number;
-  nanoCpus?: number;
-  pidsLimit?: number;
 }
 
 export type ContainerStatus =
@@ -72,6 +66,12 @@ export interface ResourceLimits {
   cpuShares?: number;
   pidsLimit?: number;
   diskSpace?: number; // MB
+  nanoCpus?: number; // 10^9 CPU shares (1e9 = 1 CPU)
+  memoryReservation?: number; // bytes
+  memorySwap?: number; // bytes
+  cpuQuota?: number; // microseconds per period
+  cpuPeriod?: number; // microseconds (100000 = 100ms)
+  blkioWeight?: number; // 10-1000
 }
 
 // Network-related types
@@ -160,32 +160,6 @@ export class OpenCodeError extends Error {
     this.details = details;
     this.name = "OpenCodeError";
   }
-}
-
-// Session interruption types (Edge Case 4)
-export interface InterruptionEvent {
-  id: string;
-  timestamp: Date;
-  type: InterruptionType;
-  source: "signal" | "timeout" | "disconnect" | "error";
-  signal?: "SIGINT" | "SIGTERM" | "SIGHUP";
-  reason?: string;
-  affectedTasks: string[];
-  stateSaved: boolean;
-}
-
-export type InterruptionType = "graceful" | "immediate";
-
-export interface ResumeOptions {
-  taskId: string;
-  fromCheckpoint?: boolean;
-  skipInterruptedHooks?: boolean;
-}
-
-export interface HeartbeatConfig {
-  enabled: boolean;
-  interval: number;
-  timeout: number;
 }
 
 // Configuration types
