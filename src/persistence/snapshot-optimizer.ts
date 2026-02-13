@@ -258,7 +258,7 @@ export class SnapshotOptimizer {
     options: TarOptions = {},
   ): Promise<void> {
     const excludeFlags = (options.excludePatterns || [])
-      .map((p) => `--exclude='${p}'`)
+      .map((p) => `--exclude='${p.replace(/'/g, "\\'")}'`)
       .join(" ");
 
     const followSymlinks = options.followSymlinks ? "" : "--no-recursion";
