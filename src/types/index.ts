@@ -150,17 +150,49 @@ export interface StateSnapshot {
 }
 
 // Error types
-export class OpenCodeError extends Error {
-  public readonly code: string;
-  public readonly details?: any;
+export {
+  OpenCodeError,
+  TaskLifecycleError,
+  RegistryError,
+  SessionError,
+  DockerError,
+  PersistenceError,
+  ProcessError,
+  GitError,
+  HookError,
+} from "./errors";
 
-  constructor(code: string, message: string, details?: any) {
-    super(message);
-    this.code = code;
-    this.details = details;
-    this.name = "OpenCodeError";
-  }
-}
+export {
+  TaskErrorCode,
+  RegistryErrorCode,
+  SessionErrorCode,
+  DockerErrorCode,
+  PersistenceErrorCode,
+  ProcessErrorCode,
+  GitErrorCode,
+  HookErrorCode,
+} from "./errors";
+
+export {
+  createTaskNotFoundError,
+  createInvalidTransitionError,
+  createTaskUpdateError,
+  createRegistryNotInitializedError,
+  createSessionNotFoundError,
+  createSessionNoTaskIdError,
+  createDockerSocketNotFoundError,
+  createDockerodeNotInstalledError,
+  createImageNotAllowedError,
+  createDatabaseNotInitializedError,
+  createCheckpointInvalidError,
+  createProcessConfigError,
+  createInvalidCommandError,
+  createLockAcquisitionError,
+  createHookExecutionError,
+  isOpenCodeError,
+  getErrorCode,
+  getSafeErrorDetails,
+} from "./errors";
 
 // Session interruption types (Edge Case 4)
 export interface InterruptionEvent {

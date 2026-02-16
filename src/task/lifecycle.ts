@@ -4,6 +4,12 @@
 
 import { Task, TaskStatus } from "../types";
 import type { TaskConfig, TaskResult } from "../types/lifecycle";
+import {
+  createTaskNotFoundError,
+  createInvalidTransitionError,
+  createTaskUpdateError,
+  TaskLifecycleError,
+} from "../types/errors";
 import { taskRegistry } from "../task-registry/registry";
 import { multiLayerPersistence } from "../persistence/multi-layer";
 import { logger } from "../util/logger";
@@ -82,12 +88,12 @@ export class TaskLifecycle {
       async () => {
         const task = await taskRegistry.getById(taskId);
         if (!task) {
-          throw new Error(`Task not found: ${taskId}`);
+          throw createTaskNotFoundError(taskId);
         }
 
         // Validate state transition
         if (task!.status !== "pending") {
-          throw new Error(`Cannot start task with status: ${task!.status}`);
+          throw createInvalidTransitionError(taskId, task!.status, "running");
         }
 
         // Update task status
@@ -95,7 +101,7 @@ export class TaskLifecycle {
           status: "running",
         });
         if (!updated) {
-          throw new Error(`Failed to update task: ${taskId}`);
+          throw createTaskUpdateError(taskId);
         }
 
         // Log state transition
@@ -138,8 +144,10 @@ export class TaskLifecycle {
         async () => {
           // Validate state transition
           if (task!.status !== "running") {
-            throw new Error(
-              `Cannot complete task with status: ${task!.status}`,
+            throw createInvalidTransitionError(
+              taskId,
+              task!.status,
+              "completed",
             );
           }
 
@@ -148,7 +156,7 @@ export class TaskLifecycle {
             status: "completed",
           });
           if (!updated) {
-            throw new Error(`Failed to update task: ${taskId}`);
+            throw createTaskUpdateError(taskId);
           }
 
           // Save result to persistence
@@ -187,7 +195,7 @@ export class TaskLifecycle {
 
     const task = await taskRegistry.getById(taskId);
     if (!task) {
-      throw new Error(`Task not found: ${taskId}`);
+      throw createTaskNotFoundError(taskId);
     }
 
     const timerId = taskMetrics.startTimer({ operation: "fail" });
@@ -199,7 +207,7 @@ export class TaskLifecycle {
         async () => {
           // Validate state transition
           if (task!.status !== "running") {
-            throw new Error(`Cannot fail task with status: ${task!.status}`);
+            throw createInvalidTransitionError(taskId, task!.status, "failed");
           }
 
           // Update task status
@@ -208,7 +216,7 @@ export class TaskLifecycle {
             metadata: { error },
           });
           if (!updated) {
-            throw new Error(`Failed to update task: ${taskId}`);
+            throw createTaskUpdateError(taskId);
           }
 
           // Save error to persistence
@@ -243,7 +251,7 @@ export class TaskLifecycle {
   public async cancelTask(taskId: string): Promise<Task> {
     const task = await taskRegistry.getById(taskId);
     if (!task) {
-      throw new Error(`Task not found: ${taskId}`);
+      throw createTaskNotFoundError(taskId);
     }
 
     const timerId = taskMetrics.startTimer({ operation: "cancel" });
@@ -255,7 +263,8 @@ export class TaskLifecycle {
         async () => {
           // Validate state transition
           if (!["pending", "running"].includes(task!.status)) {
-            throw new Error(`Cannot cancel task with status: ${task!.status}`);
+            const toStatus = "cancelled";
+            throw createInvalidTransitionError(taskId, task!.status, toStatus);
           }
 
           // Update task status
@@ -263,7 +272,7 @@ export class TaskLifecycle {
             status: "cancelled",
           });
           if (!updated) {
-            throw new Error(`Failed to update task: ${taskId}`);
+            throw createTaskUpdateError(taskId);
           }
 
           // Log cancellation
@@ -295,7 +304,7 @@ export class TaskLifecycle {
   public async deleteTask(taskId: string): Promise<void> {
     const task = await taskRegistry.getById(taskId);
     if (!task) {
-      throw new Error(`Task not found: ${taskId}`);
+      throw createTaskNotFoundError(taskId);
     }
 
     return lockManager.withLock(
@@ -319,7 +328,7 @@ export class TaskLifecycle {
   public async getTaskStatus(taskId: string): Promise<TaskStatus> {
     const task = await taskRegistry.getById(taskId);
     if (!task) {
-      throw new Error(`Task not found: ${taskId}`);
+      throw createTaskNotFoundError(taskId);
     }
 
     return task.status;
