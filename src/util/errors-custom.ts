@@ -3,11 +3,11 @@
  *
  * Provides type-safe error handling with error codes for better error management
  */
-export abstract class OpenCodeError extends Error {
+export abstract class OpenCodeError<TDetails = any> extends Error {
   constructor(
     public code: string,
     message: string,
-    public details?: any,
+    public details?: TDetails,
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -28,17 +28,22 @@ export enum TaskErrorCode {
 }
 
 /**
+ * Task error details interface
+ */
+export interface TaskErrorDetails {
+  taskId?: string;
+  currentStatus?: string;
+  targetStatus?: string;
+}
+
+/**
  * Task lifecycle error
  */
-export class TaskLifecycleError extends OpenCodeError {
+export class TaskLifecycleError extends OpenCodeError<TaskErrorDetails> {
   constructor(
     code: TaskErrorCode,
     message: string,
-    details?: {
-      taskId?: string;
-      currentStatus?: string;
-      targetStatus?: string;
-    },
+    details?: TaskErrorDetails,
   ) {
     super(code, message, details);
   }
@@ -65,6 +70,38 @@ export const TaskErrors = {
       TaskErrorCode.INVALID_STATE_TRANSITION,
       `Cannot transition task ${taskId} from ${currentStatus} to ${targetStatus}`,
       { taskId, currentStatus, targetStatus },
+    );
+  },
+
+  taskAlreadyStarted(taskId: string): TaskLifecycleError {
+    return new TaskLifecycleError(
+      TaskErrorCode.TASK_ALREADY_STARTED,
+      `Task ${taskId} is already running`,
+      { taskId, currentStatus: "running" },
+    );
+  },
+
+  taskAlreadyCompleted(taskId: string): TaskLifecycleError {
+    return new TaskLifecycleError(
+      TaskErrorCode.TASK_ALREADY_COMPLETED,
+      `Task ${taskId} is already completed`,
+      { taskId, currentStatus: "completed" },
+    );
+  },
+
+  taskAlreadyCancelled(taskId: string): TaskLifecycleError {
+    return new TaskLifecycleError(
+      TaskErrorCode.TASK_ALREADY_CANCELLED,
+      `Task ${taskId} is already cancelled`,
+      { taskId, currentStatus: "cancelled" },
+    );
+  },
+
+  taskAlreadyFailed(taskId: string): TaskLifecycleError {
+    return new TaskLifecycleError(
+      TaskErrorCode.TASK_ALREADY_FAILED,
+      `Task ${taskId} is already failed`,
+      { taskId, currentStatus: "failed" },
     );
   },
 
@@ -97,10 +134,23 @@ export enum RegistryErrorCode {
 }
 
 /**
+ * Registry error details interface
+ */
+export interface RegistryErrorDetails {
+  id?: string;
+  type?: string;
+  resource?: string;
+}
+
+/**
  * Registry error
  */
-export class RegistryError extends OpenCodeError {
-  constructor(code: RegistryErrorCode, message: string, details?: any) {
+export class RegistryError extends OpenCodeError<RegistryErrorDetails> {
+  constructor(
+    code: RegistryErrorCode,
+    message: string,
+    details?: RegistryErrorDetails,
+  ) {
     super(code, message, details);
   }
 }
@@ -159,10 +209,23 @@ export enum DockerErrorCode {
 }
 
 /**
+ * Docker error details interface
+ */
+export interface DockerErrorDetails {
+  containerId?: string;
+  networkId?: string;
+  path?: string;
+}
+
+/**
  * Docker error
  */
-export class DockerError extends OpenCodeError {
-  constructor(code: DockerErrorCode, message: string, details?: any) {
+export class DockerError extends OpenCodeError<DockerErrorDetails> {
+  constructor(
+    code: DockerErrorCode,
+    message: string,
+    details?: DockerErrorDetails,
+  ) {
     super(code, message, details);
   }
 }
@@ -222,10 +285,22 @@ export enum PersistenceErrorCode {
 }
 
 /**
+ * Persistence error details interface
+ */
+export interface PersistenceErrorDetails {
+  taskId?: string;
+  reason?: string;
+}
+
+/**
  * Persistence error
  */
-export class PersistenceError extends OpenCodeError {
-  constructor(code: PersistenceErrorCode, message: string, details?: any) {
+export class PersistenceError extends OpenCodeError<PersistenceErrorDetails> {
+  constructor(
+    code: PersistenceErrorCode,
+    message: string,
+    details?: PersistenceErrorDetails,
+  ) {
     super(code, message, details);
   }
 }
@@ -286,10 +361,23 @@ export enum HookErrorCode {
 }
 
 /**
+ * Hook error details interface
+ */
+export interface HookErrorDetails {
+  hookId?: string;
+  error?: string;
+  type?: string;
+}
+
+/**
  * Hook error
  */
-export class HookError extends OpenCodeError {
-  constructor(code: HookErrorCode, message: string, details?: any) {
+export class HookError extends OpenCodeError<HookErrorDetails> {
+  constructor(
+    code: HookErrorCode,
+    message: string,
+    details?: HookErrorDetails,
+  ) {
     super(code, message, details);
   }
 }
@@ -324,7 +412,22 @@ export const HookErrors = {
 };
 
 /**
- * Check if error is a specific OpenCode error type
+ * Type guard to check if error is an OpenCodeError
+ *
+ * Enables TypeScript type narrowing in catch blocks to access error.code and error.details.
+ *
+ * @param error - Error to check
+ * @returns Type predicate that narrows the error type
+ *
+ * @example
+ * try {
+ *   await taskLifecycle.startTask(taskId, agentId);
+ * } catch (error) {
+ *   if (isOpenCodeError(error)) {
+ *     console.log(`Error code: ${error.code}`);
+ *     console.log(`Error details:`, error.details);
+ *   }
+ * }
  */
 export function isOpenCodeError(error: any): error is OpenCodeError {
   return error instanceof OpenCodeError;
@@ -332,6 +435,22 @@ export function isOpenCodeError(error: any): error is OpenCodeError {
 
 /**
  * Get error code from any error
+ *
+ * Safely extracts the error code from OpenCodeError instances.
+ * Returns undefined for non-OpenCodeError errors.
+ *
+ * @param error - Error to extract code from
+ * @returns Error code string or undefined if error is not an OpenCodeError
+ *
+ * @example
+ * try {
+ *   await taskLifecycle.startTask(taskId, agentId);
+ * } catch (error) {
+ *   const errorCode = getErrorCode(error);
+ *   if (errorCode === "TASK_NOT_FOUND") {
+ *     // Handle missing task
+ *   }
+ * }
  */
 export function getErrorCode(error: any): string | undefined {
   if (isOpenCodeError(error)) {
@@ -342,6 +461,22 @@ export function getErrorCode(error: any): string | undefined {
 
 /**
  * Get error details from any error
+ *
+ * Safely extracts the error details from OpenCodeError instances.
+ * Returns undefined for non-OpenCodeError errors.
+ *
+ * @param error - Error to extract details from
+ * @returns Error details object or undefined if error is not an OpenCodeError
+ *
+ * @example
+ * try {
+ *   await taskLifecycle.startTask(taskId, agentId);
+ * } catch (error) {
+ *   const details = getErrorDetails(error);
+ *   if (details?.taskId) {
+ *     console.log(`Failed for task: ${details.taskId}`);
+ *   }
+ * }
  */
 export function getErrorDetails(error: any): any | undefined {
   if (isOpenCodeError(error)) {

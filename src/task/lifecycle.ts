@@ -34,6 +34,18 @@ export class TaskLifecycle {
     transitionType: "start" | "complete" | "fail" | "cancel" | "delete",
     lockOwner: string,
     transitionFn: (task: Task) => Promise<T>,
+  ): Promise<T>;
+  private async executeTransition(
+    taskId: string,
+    transitionType: "delete",
+    lockOwner: string,
+    transitionFn: (task: Task) => Promise<void>,
+  ): Promise<void>;
+  private async executeTransition<T>(
+    taskId: string,
+    transitionType: "start" | "complete" | "fail" | "cancel" | "delete",
+    lockOwner: string,
+    transitionFn: (task: Task) => Promise<T>,
   ): Promise<T> {
     const task = await this.getTaskOrThrow(taskId);
 
@@ -42,21 +54,6 @@ export class TaskLifecycle {
       `${LOCK_PREFIX.LIFECYCLE}${lockOwner}`,
       async () => {
         const result = await transitionFn(task);
-
-        if (transitionType !== "delete") {
-          await multiLayerPersistence.appendLog(taskId, {
-            timestamp: new Date().toISOString(),
-            level:
-              transitionType === "cancel"
-                ? "warning"
-                : transitionType === "fail"
-                  ? "error"
-                  : "info",
-            message: `Task ${transitionType}`,
-            data: { fromStatus: task.status, toStatus: task.status },
-          });
-        }
-
         return result;
       },
     );
@@ -115,6 +112,9 @@ export class TaskLifecycle {
     await taskLifecycleHooks.executeBeforeTaskStart(taskId, agentId);
 
     return this.executeTransition(taskId, "start", agentId, async (task) => {
+      if (task.status === "running") {
+        throw TaskErrors.taskAlreadyStarted(taskId);
+      }
       if (task.status !== "pending") {
         throw TaskErrors.invalidStateTransition(taskId, task.status, "running");
       }
@@ -148,6 +148,9 @@ export class TaskLifecycle {
         "complete",
         "system",
         async (task) => {
+          if (task.status === "completed") {
+            throw TaskErrors.taskAlreadyCompleted(taskId);
+          }
           if (task.status !== "running") {
             throw TaskErrors.invalidStateTransition(
               taskId,
@@ -201,6 +204,9 @@ export class TaskLifecycle {
         "fail",
         "system",
         async (task) => {
+          if (task.status === "failed") {
+            throw TaskErrors.taskAlreadyFailed(taskId);
+          }
           if (task.status !== "running") {
             throw TaskErrors.invalidStateTransition(
               taskId,
@@ -234,9 +240,9 @@ export class TaskLifecycle {
 
       taskMetrics.stopTimer(timerId);
       return failedTask;
-    } catch (err) {
+    } catch (error) {
       taskMetrics.stopTimer(timerId);
-      throw err;
+      throw error;
     }
   }
 
@@ -252,6 +258,9 @@ export class TaskLifecycle {
         "cancel",
         "system",
         async (task) => {
+          if (task.status === "cancelled") {
+            throw TaskErrors.taskAlreadyCancelled(taskId);
+          }
           if (!["pending", "running"].includes(task.status)) {
             throw TaskErrors.invalidStateTransition(
               taskId,
@@ -283,9 +292,9 @@ export class TaskLifecycle {
 
       taskMetrics.stopTimer(timerId);
       return cancelledTask;
-    } catch (err) {
+    } catch (error) {
       taskMetrics.stopTimer(timerId);
-      throw err;
+      throw error;
     }
   }
 
@@ -297,7 +306,6 @@ export class TaskLifecycle {
       await taskRegistry.delete(taskId);
       await multiLayerPersistence.cleanup(taskId);
       logger.info("Task deleted", { taskId });
-      return undefined as any;
     });
   }
 
