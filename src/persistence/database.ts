@@ -5,6 +5,11 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { logger } from "../util/logger";
 import * as schema from "./schema";
+import {
+  DatabaseAdapter,
+  DatabaseConfig,
+  createDatabaseAdapter,
+} from "./database-adapter";
 
 export class DatabaseManager {
   private db: ReturnType<typeof drizzle> | null = null;
@@ -80,3 +85,6 @@ export class DatabaseManager {
 // Tests will call initialize() with proper environment variables set
 // For production use, initialize in your main entry point:
 // await DatabaseManager.getInstance().initialize();
+
+export type { DatabaseAdapter, DatabaseConfig };
+export { createDatabaseAdapter };
