@@ -21,6 +21,10 @@ export class TaskRegistry {
   public static getInstance(): TaskRegistry {
     if (!TaskRegistry.instance) {
       TaskRegistry.instance = new TaskRegistry();
+      // Trigger auto-initialization
+      TaskRegistry.instance.ensureReady().catch((error) => {
+        logger.error("Failed to auto-initialize TaskRegistry", { error });
+      });
     }
     return TaskRegistry.instance;
   }
@@ -29,9 +33,18 @@ export class TaskRegistry {
     // Guard against concurrent initialization attempts
     if (!this.ready && !this.initializing) {
       this.initializing = true;
-      this.ready = this.initialize().finally(() => {
-        this.initializing = false;
-      });
+      this.ready = this.initialize()
+        .then(() => {
+          // On success, keep the ready Promise for future calls
+        })
+        .catch((error) => {
+          // On failure, clear the state to allow retry
+          this.ready = null;
+          throw error;
+        })
+        .finally(() => {
+          this.initializing = false;
+        });
     }
     if (this.ready) {
       await this.ready;
