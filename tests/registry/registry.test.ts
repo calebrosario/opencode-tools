@@ -15,9 +15,8 @@ import { DatabaseManager } from "../../src/persistence/database";
 
 describe("TaskRegistry", () => {
   beforeAll(async () => {
-    // Initialize DatabaseManager first, then TaskRegistry
+    // Initialize DatabaseManager first - TaskRegistry auto-initializes on first getInstance() call
     await DatabaseManager.getInstance().initialize();
-    await taskRegistry.initialize();
   });
 
   beforeEach(async () => {
@@ -208,8 +207,7 @@ describe("TaskRegistry", () => {
   });
 
   // Skip test due to transient database connection issue with concurrent operations
-  it.skip("should handle concurrent operations", async () => {
-    await taskRegistry.initialize();
+  test.skip("should handle concurrent operations", async () => {
     const task = await taskRegistry.create({
       id: "test-task-4",
       name: "Concurrent Test",
