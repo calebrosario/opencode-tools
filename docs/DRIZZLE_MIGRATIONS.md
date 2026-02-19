@@ -1,6 +1,6 @@
 # Drizzle ORM Migration Guide
 
-This guide covers setting up and using Drizzle ORM migrations with PostgreSQL for the agent-armor project.
+This guide covers setting up and using Drizzle ORM migrations with PostgreSQL for the opencode-tools project.
 
 ## Overview
 

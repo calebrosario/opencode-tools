@@ -11,12 +11,11 @@ import {
 } from "@jest/globals";
 import { taskRegistry } from "../../src/task-registry/registry";
 import { Task, TaskStatus } from "../../src/types";
-import { DatabaseManager } from "../../src/persistence/database";
 
 describe("TaskRegistry", () => {
   beforeAll(async () => {
-    // Initialize DatabaseManager first - TaskRegistry auto-initializes on first getInstance() call
-    await DatabaseManager.getInstance().initialize();
+    // TaskRegistry auto-initializes on first getInstance() call
+    await taskRegistry.initialize();
   });
 
   beforeEach(async () => {
@@ -28,11 +27,11 @@ describe("TaskRegistry", () => {
   });
 
   afterAll(async () => {
+    // Cleanup - clear all test tasks
     const tasks = await taskRegistry.list();
     for (const task of tasks) {
       await taskRegistry.delete(task.id);
     }
-    await DatabaseManager.getInstance().close();
   });
 
   test("should create a valid task", async () => {
@@ -207,7 +206,8 @@ describe("TaskRegistry", () => {
   });
 
   // Skip test due to transient database connection issue with concurrent operations
-  test.skip("should handle concurrent operations", async () => {
+  test("should handle concurrent operations", async () => {
+    await taskRegistry.initialize();
     const task = await taskRegistry.create({
       id: "test-task-4",
       name: "Concurrent Test",
@@ -230,12 +230,22 @@ describe("TaskRegistry", () => {
     );
   });
 
-  afterAll(async () => {
-    // Cleanup test tasks
-    try {
-      await taskRegistry.delete("test-task-4");
-    } catch {
-      // Ignore cleanup errors
-    }
-  });
+  // Try to read the task multiple times concurrently
+  const promises = [];
+  for (let i = 0; i < 10; i++) {
+    promises.push(taskRegistry.getById("test-task-4"));
+  }
+
+  const results = await Promise.all(promises);
+  expect(results.length).toBe(10);
+  expect(results.every((r) => r !== null && r.id === "test-task-4")).toBe(true);
+});
+
+afterAll(async () => {
+  // Cleanup test tasks
+  try {
+    await taskRegistry.delete("test-task-4");
+  } catch {
+    // Ignore cleanup errors
+  }
 });

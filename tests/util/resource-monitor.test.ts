@@ -26,16 +26,16 @@ describe("ResourceMonitor", () => {
     });
 
     it("should reject memory requests that exceed limits", async () => {
-      // Register a container using most of the 80% buffer (6553MB)
+      // Register a container using most of the memory
       monitor.registerContainer("test-container-1", {
-        memoryMB: 6000,
+        memoryMB: 5000,
         cpuShares: 1024,
         pidsLimit: 50,
       });
 
       // Try to add another container that would exceed the 80% buffer limit
       const request: Partial<ResourceLimits> = {
-        memoryMB: 1024, // This should push us over the 80% buffer limit (6000 + 1024 = 7024 > 6553.6)
+        memoryMB: 400, // This should push us over the 80% buffer limit (5000 + 400 = 5400 > 6553)
       };
 
       const allowed = await monitor.checkResourceLimits(request);

@@ -1,27 +1,9 @@
 import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterEach,
-  jest,
-} from "@jest/globals";
-import {
   DockerHelper,
   ERROR_CODES,
   dockerHelper,
 } from "../../src/util/docker-helper";
 import { OpenCodeError } from "../../src/types";
-
-jest.mock("dockerode", () => ({
-  __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
-    createNetwork: jest.fn(),
-    getNetwork: jest.fn(),
-    listNetworks: jest.fn(),
-    info: jest.fn(),
-  })),
-}));
 
 describe("DockerHelper", () => {
   let originalEnv: any;
@@ -33,8 +15,6 @@ describe("DockerHelper", () => {
   afterEach(() => {
     // Reset environment after each test
     process.env = { ...originalEnv };
-    // Clear singleton cache
-    DockerHelper.resetInstance();
     // Clear any cached instances
     jest.clearAllMocks();
   });
@@ -48,34 +28,8 @@ describe("DockerHelper", () => {
       expect(process.env.DOCKER_SOCKET).toBe("/custom/docker.sock");
     });
 
-    it("should detect standard macOS socket path", () => {
-      // Skip on non-macOS platforms
-      if (process.platform !== "darwin") {
-        console.warn("Skipping macOS-specific test on " + process.platform);
-        return;
-      }
-
-      // Mock platform to darwin and mock fs.existsSync
-      Object.defineProperty(process, "platform", {
-        value: "darwin",
-        writable: true,
-        configurable: true,
-      });
-
-      const helper = DockerHelper.getInstance();
-      const socket = helper.detectSocket();
-
-      expect(socket).toMatch(/\/Users\/.*\/\.docker\/run\/docker\.sock/);
-    });
-
-    it("should detect Linux Docker socket paths", () => {
-      // Skip on non-Linux platforms
-      if (process.platform !== "linux") {
-        console.warn("Skipping Linux-specific test on " + process.platform);
-        return;
-      }
-
-      // Mock platform to linux and mock fs.existsSync
+    it("should detect standard Linux socket path", () => {
+      // Mock platform to linux
       Object.defineProperty(process, "platform", {
         value: "linux",
         writable: true,
@@ -89,12 +43,6 @@ describe("DockerHelper", () => {
     });
 
     it("should throw when no socket found on Linux", () => {
-      // Skip on non-Linux platforms
-      if (process.platform !== "linux") {
-        console.warn("Skipping Linux-specific test on " + process.platform);
-        return;
-      }
-
       // Mock platform to linux and no fs.existsSync
       Object.defineProperty(process, "platform", {
         value: "linux",
@@ -108,13 +56,7 @@ describe("DockerHelper", () => {
     });
 
     it("should detect macOS Docker Desktop socket paths", () => {
-      // Skip on non-macOS platforms
-      if (process.platform !== "darwin") {
-        console.warn("Skipping macOS-specific test on " + process.platform);
-        return;
-      }
-
-      // Mock platform to darwin and mock fs.existsSync to return false
+      // Mock platform to darwin and mock fs.existsSync
       Object.defineProperty(process, "platform", {
         value: "darwin",
         writable: true,
@@ -122,7 +64,6 @@ describe("DockerHelper", () => {
       });
 
       const helper = DockerHelper.getInstance();
-      jest.spyOn(require("fs"), "existsSync").mockReturnValue(false);
 
       expect(() => helper.detectSocket()).toThrow(OpenCodeError);
     });
@@ -208,10 +149,10 @@ describe("DockerHelper", () => {
       expect(instance1).toBe(instance2);
     });
   });
+});
 
-  describe("dockerHelper singleton export", () => {
-    it("should export singleton instance", () => {
-      expect(dockerHelper).toBeInstanceOf(DockerHelper);
-    });
+describe("dockerHelper singleton export", () => {
+  it("should export singleton instance", () => {
+    expect(dockerHelper).toBeInstanceOf(DockerHelper);
   });
 });

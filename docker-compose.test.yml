@@ -10,7 +10,7 @@ services:
       POSTGRES_DB: opencode_test
       DATABASE_URL: postgresql://opencode_test:opencode_test_password@localhost:5432/opencode_test
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

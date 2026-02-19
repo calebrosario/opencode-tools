@@ -5,11 +5,6 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { logger } from "../util/logger";
 import * as schema from "./schema";
-import {
-  DatabaseAdapter,
-  DatabaseConfig,
-  createDatabaseAdapter,
-} from "./database-adapter";
 
 export class DatabaseManager {
   private db: ReturnType<typeof drizzle> | null = null;
@@ -59,7 +54,6 @@ export class DatabaseManager {
       logger.error("❌ Failed to initialize PostgreSQL database", {
         error: error instanceof Error ? error.message : String(error),
       });
-
       throw error;
     }
   }
@@ -81,10 +75,17 @@ export class DatabaseManager {
   }
 }
 
-// Note: DatabaseManager must be initialized explicitly via initialize() method
-// Tests will call initialize() with proper environment variables set
-// For production use, initialize in your main entry point:
-// await DatabaseManager.getInstance().initialize();
-
-export type { DatabaseAdapter, DatabaseConfig };
-export { createDatabaseAdapter };
+// Initialize Database Manager (crashes app on failure - database is critical)
+DatabaseManager.getInstance()
+  .initialize()
+  .catch((error) => {
+    logger.error(
+      "CRITICAL: Failed to initialize Database Manager - database is required",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+    // Database is critical infrastructure - crash app if initialization fails
+    // This prevents silent failures where app continues with broken database
+    process.exit(1);
+  });

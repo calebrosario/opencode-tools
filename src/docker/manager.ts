@@ -759,19 +759,14 @@ export class DockerManager {
         const portKey = `${port.containerPort}/${port.protocol}`;
         exposedPorts[portKey] = {};
 
-        if (portBindings[portKey]) {
-          portBindings[portKey].push({
+        const existingBindings = portBindings[portKey] || [];
+        portBindings[portKey] = [
+          ...existingBindings,
+          {
             HostPort: port.hostPort?.toString() || "",
             HostIp: port.hostIp || "",
-          });
-        } else {
-          portBindings[portKey] = [
-            {
-              HostPort: port.hostPort?.toString() || "",
-              HostIp: port.hostIp || "",
-            },
-          ];
-        }
+          },
+        ];
       }
     }
 

@@ -1,6 +1,6 @@
-# Agentic Armor
+# OpenCode Tools
 
-> A Docker-based task management system with concurrency, state persistence and multi-agent orchestration.
+> Docker-based task management system with concurrency, state persistence, and multi-agent orchestration.
 
 ## Quick Links
 
@@ -11,7 +11,7 @@
 
 ## Overview
 
-Agentic Armor is a production-ready system for managing AI agent tasks with:
+OpenCode Tools is a production-ready system for managing AI agent tasks with:
 
 - **Docker Integration**: Full lifecycle management for Docker containers
 - **Concurrency Control**: Optimistic locking for multi-agent workflows
@@ -52,15 +52,6 @@ Agentic Armor is a production-ready system for managing AI agent tasks with:
 - 13 CLI commands (task management, checkpoints, memory)
 - Integration and E2E tests
 - Complete documentation (README, API, User Guide, State Machines)
-
-✅ Phase 3: Monitoring & Metrics (100%)
-
-- Metrics collection system with counters, timers, and gauges
-- Health check system with database, Docker, disk, and memory checks
-- Performance tracking for CPU, memory, and disk usage
-- Dashboard data provider with aggregation and formatting
-- 2 CLI commands (metrics, health) with JSON and CSV export
-- Monitoring tests and documentation
 
 ## Quick Start
 
@@ -129,32 +120,11 @@ Optimistic locking with two modes:
 
 ### 6. CLI Commands
 
-15 commands organized by category:
+13 commands organized by category:
 
 - 6 task management commands
 - 2 checkpoint commands
 - 5 memory commands
-- 2 monitoring commands (metrics, health)
-
-```bash
-# Display metrics dashboard
-npm run cli -- metrics
-
-# Display metrics as JSON
-npm run cli -- metrics --json
-
-# Display metrics as CSV
-npm run cli -- metrics --csv
-
-# Display health check status
-npm run cli -- health
-
-# Display health with detailed information
-npm run cli -- health --detailed
-
-# Exit with error if any health check fails
-npm run cli -- health --fail-fast
-```
 
 ## Documentation
 
