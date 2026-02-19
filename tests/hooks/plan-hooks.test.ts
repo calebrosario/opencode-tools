@@ -20,8 +20,8 @@ describe("Plan Hooks", () => {
 
     test("should execute hook with taskId and agentId", async () => {
       const hook = createPlanFileCreatorHook();
-      // Hook logs internally (real file operations are placeholders)
-      await expect(hook("task-123", "agent-1")).rejects.toThrow();
+      // Hook returns undefined if task not found (graceful degradation)
+      await expect(hook("task-123", "agent-1")).resolves.toBeUndefined();
     });
   });
 
