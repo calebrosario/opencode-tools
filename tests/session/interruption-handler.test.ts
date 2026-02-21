@@ -3,15 +3,16 @@ import {
   test,
   expect,
   jest,
-  mock,
   describe,
   beforeEach,
   afterEach,
-} from "bun:test";
+} from "@jest/globals";
 import {
   InterruptionHandler,
   interruptionHandler,
 } from "../../src/session/interruption-handler";
+
+import { multiLayerPersistence } from "../../src/persistence/multi-layer";
 
 const mockCreateCheckpoint = jest.fn(
   async (taskId: string, reason: string) =>
@@ -21,36 +22,22 @@ const mockRestoreCheckpoint = jest.fn(
   async (taskId: string, checkpointId: string) => undefined,
 );
 
-mock.module("../../src/persistence/multi-layer", () => ({
+// Mock multiLayerPersistence
+jest.mock("../../src/persistence/multi-layer", () => ({
   multiLayerPersistence: {
     createCheckpoint: mockCreateCheckpoint,
     restoreCheckpoint: mockRestoreCheckpoint,
   },
 }));
 
-import { multiLayerPersistence } from "../../src/persistence/multi-layer";
-
-const mockCreateCheckpointTyped = mockCreateCheckpoint as any;
-const mockRestoreCheckpointTyped = mockRestoreCheckpoint as any;
-
 describe("InterruptionHandler", () => {
   let handler: InterruptionHandler;
-  const mockCreateCheckpoint = mockCreateCheckpointTyped;
-  const mockRestoreCheckpoint = mockRestoreCheckpointTyped;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     InterruptionHandler.resetInstance();
     handler = InterruptionHandler.getInstance();
-  });
-
-  afterEach(() => {
-    mock.restore();
-  });
-
-  afterEach(() => {
-    mock.restore();
   });
 
   describe("Session Lifecycle", () => {

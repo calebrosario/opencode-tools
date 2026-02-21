@@ -7,9 +7,8 @@ import {
   expect,
   beforeEach,
   afterEach,
-  mock,
   jest,
-} from "bun:test";
+} from "@jest/globals";
 import { taskLifecycleHooks } from "../../src/hooks/task-lifecycle";
 import { TaskResult } from "../../src/types/lifecycle";
 

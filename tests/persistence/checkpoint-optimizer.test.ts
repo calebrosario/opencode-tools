@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import { join } from "path";
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
+import { jest } from "@jest/globals";
 import {
   CheckpointOptimizer,
   checkpointOptimizer,

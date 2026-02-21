@@ -1,8 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import {
-  getAvailablePort,
-  getAvailablePorts,
-} from "./ports";
+import { describe, test, expect } from "@jest/globals";
+import { getAvailablePort, getAvailablePorts } from "./ports";
 import net from "net";
 
 describe("getAvailablePort", () => {

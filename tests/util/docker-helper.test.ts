@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll, afterEach, spyOn } from "bun:test";
+import { describe, it, expect, beforeAll, afterEach } from "@jest/globals";
+import { jest } from "@jest/globals";
 import {
   DockerHelper,
   ERROR_CODES,

@@ -1,6 +1,6 @@
 {
   "name": "opencode-tools",
-  "version": "0.1.0",
+  "version": "0.2.0-beta",
   "description": "Docker-based task management system with concurrency, state persistence, and multi-agent orchestration",
   "main": "dist/index.js",
   "scripts": {

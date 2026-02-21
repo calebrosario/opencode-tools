@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "@jest/globals";
 import { getErrorMessage } from "../../src/util/errors";
 
 describe("getErrorMessage", () => {

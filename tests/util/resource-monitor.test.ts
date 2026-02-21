@@ -35,7 +35,7 @@ describe("ResourceMonitor", () => {
 
       // Try to add another container that would exceed the 80% buffer limit
       const request: Partial<ResourceLimits> = {
-        memoryMB: 400, // This should push us over the 80% buffer limit (5000 + 400 = 5400 > 6553)
+        memoryMB: 1600, // This should push us over the 80% buffer limit (5000 + 1600 = 6600 > 6553.6)
       };
 
       const allowed = await monitor.checkResourceLimits(request);
