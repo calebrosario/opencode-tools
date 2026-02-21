@@ -61,4 +61,4 @@ This document tracks tests that are temporarily skipped and how to re-enable the
 
 ## Related Issue
 
-See GitHub issue for tracking re-enablement: TBD
+See GitHub issue for tracking re-enablement: [#40](https://github.com/calebrosario/agentic-armor/issues/40)
