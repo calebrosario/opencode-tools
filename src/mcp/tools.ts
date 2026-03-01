@@ -99,26 +99,43 @@ export const TOOL_DEFINITIONS = [
     description: "Execute a command in a task",
     execute: async (params: Record<string, any>) => {
       try {
-        // For now, just log the command execution
-        // In full implementation with Docker Manager, this would:
-        // 1. Verify task is running
-        // 2. Execute command in Docker container
-        // 3. Capture stdout/stderr
-        // 4. Return exit code and output
+        const { DockerManager } = await import("../docker/manager");
+        const dockerManager = DockerManager.getInstance();
+        
+        // Get container ID from task ID
+        // In the full system, this would look up the container ID from the task registry
+        // For now, we assume taskId is the container ID or there's a mapping
+        const containerId = params.taskId;
+        
+        if (!containerId) {
+          throw new Error("taskId is required");
+        }
+        
+        const result = await dockerManager.execInContainer(
+          containerId,
+          params.command,
+          {
+            timeout: params.timeout || 60000,
+            user: params.user,
+            workingDir: params.workingDir,
+            env: params.env,
+          },
+        );
 
         logger.info("Command executed in task", {
           taskId: params.taskId,
           command: params.command,
-          timeout: params.timeout || 30000,
+          exitCode: result.exitCode,
+          duration: result.duration,
         });
 
         return {
-          success: true,
+          success: result.exitCode === 0,
           taskId: params.taskId,
-          exitCode: 0,
-          stdout: `Executed: ${params.command}`,
-          stderr: "",
-          duration: 100, // Simulated duration
+          exitCode: result.exitCode,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          duration: result.duration,
         };
       } catch (error: unknown) {
         const errorMessage =
@@ -177,11 +194,29 @@ export const TOOL_DEFINITIONS = [
     description: "Stop a running task",
     execute: async (params: Record<string, any>) => {
       try {
-        // For now, just cancel the task
-        // In full implementation with Docker Manager, this would:
-        // 1. Stop the Docker container
-        // 2. Update task status to cancelled
+        const { DockerManager } = await import("../docker/manager");
+        const dockerManager = DockerManager.getInstance();
+        
+        const containerId = params.taskId;
+        
+        if (!containerId) {
+          throw new Error("taskId is required");
+        }
 
+        // Stop Docker container
+        try {
+          await dockerManager.stopContainer(containerId, 10);
+          logger.info("Docker container stopped", { containerId });
+        } catch (containerError: unknown) {
+          // Log but continue - container might not exist
+          const errorMsg = containerError instanceof Error ? containerError.message : String(containerError);
+          logger.warn("Failed to stop Docker container (may not exist)", {
+            containerId,
+            error: errorMsg,
+          });
+        }
+
+        // Cancel task in lifecycle
         const task = await taskLifecycle.cancelTask(params.taskId);
 
         logger.info("Task stopped", { taskId: params.taskId });
@@ -204,6 +239,29 @@ export const TOOL_DEFINITIONS = [
     description: "Delete a task and cleanup",
     execute: async (params: Record<string, any>) => {
       try {
+        const { DockerManager } = await import("../docker/manager");
+        const dockerManager = DockerManager.getInstance();
+        
+        const containerId = params.taskId;
+        
+        if (!containerId) {
+          throw new Error("taskId is required");
+        }
+
+        // Remove Docker container if it exists
+        try {
+          await dockerManager.removeContainer(containerId, true, true);
+          logger.info("Docker container removed", { containerId });
+        } catch (containerError: unknown) {
+          // Log but continue - container might not exist
+          const errorMsg = containerError instanceof Error ? containerError.message : String(containerError);
+          logger.warn("Failed to remove Docker container (may not exist)", {
+            containerId,
+            error: errorMsg,
+          });
+        }
+
+        // Delete task from lifecycle
         await taskLifecycle.deleteTask(params.taskId);
 
         logger.info("Task deleted", { taskId: params.taskId });
