@@ -7,10 +7,6 @@ import { createResourceLimitMonitorHook } from "../../src/hooks/safety-hooks/res
 import { createIsolationCheckerHook } from "../../src/hooks/safety-hooks/isolation-checker";
 
 describe("Safety Hooks", () => {
-  beforeEach(() => {
-    mock.restore();
-  });
-
   describe("Container Enforcer Hook", () => {
     test("should create hook function", () => {
       const hook = createContainerSafetyEnforcerHook();

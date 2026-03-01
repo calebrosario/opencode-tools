@@ -25,7 +25,7 @@ describe("TaskLifecycleHooks", () => {
 
   describe("Hook Registration", () => {
     test("should register beforeTaskStart hook", () => {
-      const mockHook = jest.fn().mockResolvedValue(undefined);
+      const mockHook = jest.fn().mockReturnValue(Promise.resolve()) as any;
       const hookId = taskLifecycleHooks.registerBeforeTaskStart(mockHook);
       expect(hookId).toMatch(/^hook_\d+$/);
       expect(taskLifecycleHooks.getHooksByType("beforeTaskStart").length).toBe(
@@ -34,7 +34,7 @@ describe("TaskLifecycleHooks", () => {
     });
 
     test("should register afterTaskStart hook", () => {
-      const mockHook = jest.fn().mockResolvedValue(undefined);
+      const mockHook = jest.fn().mockReturnValue(Promise.resolve()) as any;
       const hookId = taskLifecycleHooks.registerAfterTaskStart(mockHook);
       expect(hookId).toMatch(/^hook_\d+$/);
       expect(taskLifecycleHooks.getHooksByType("afterTaskStart").length).toBe(
@@ -43,7 +43,7 @@ describe("TaskLifecycleHooks", () => {
     });
 
     test("should register beforeTaskComplete hook", () => {
-      const mockHook = jest.fn().mockResolvedValue(undefined);
+      const mockHook = jest.fn().mockReturnValue(Promise.resolve()) as any;
       const hookId = taskLifecycleHooks.registerBeforeTaskComplete(mockHook);
       expect(hookId).toMatch(/^hook_\d+$/);
       expect(
@@ -52,7 +52,7 @@ describe("TaskLifecycleHooks", () => {
     });
 
     test("should register afterTaskComplete hook", () => {
-      const mockHook = jest.fn().mockResolvedValue(undefined);
+      const mockHook = jest.fn().mockReturnValue(Promise.resolve()) as any;
       const hookId = taskLifecycleHooks.registerAfterTaskComplete(mockHook);
       expect(hookId).toMatch(/^hook_\d+$/);
       expect(
@@ -61,7 +61,7 @@ describe("TaskLifecycleHooks", () => {
     });
 
     test("should register beforeTaskFail hook", () => {
-      const mockHook = jest.fn().mockResolvedValue(undefined);
+      const mockHook = jest.fn().mockReturnValue(Promise.resolve()) as any;
       const hookId = taskLifecycleHooks.registerBeforeTaskFail(mockHook);
       expect(hookId).toMatch(/^hook_\d+$/);
       expect(taskLifecycleHooks.getHooksByType("beforeTaskFail").length).toBe(
@@ -70,15 +70,15 @@ describe("TaskLifecycleHooks", () => {
     });
 
     test("should register afterTaskFail hook", () => {
-      const mockHook = jest.fn().mockResolvedValue(undefined);
+      const mockHook = jest.fn().mockReturnValue(Promise.resolve()) as any;
       const hookId = taskLifecycleHooks.registerAfterTaskFail(mockHook);
       expect(hookId).toMatch(/^hook_\d+$/);
       expect(taskLifecycleHooks.getHooksByType("afterTaskFail").length).toBe(1);
     });
 
     test("should return unique hook ID for each registration", () => {
-      const hook1 = jest.fn().mockResolvedValue(undefined);
-      const hook2 = jest.fn().mockResolvedValue(undefined);
+      const hook1 = jest.fn().mockReturnValue(Promise.resolve()) as any;
+      const hook2 = jest.fn().mockReturnValue(Promise.resolve()) as any;
       const id1 = taskLifecycleHooks.registerBeforeTaskStart(hook1);
       const id2 = taskLifecycleHooks.registerBeforeTaskStart(hook2);
       expect(id1).not.toBe(id2);
@@ -104,9 +104,9 @@ describe("TaskLifecycleHooks", () => {
 
   describe("Error Handling", () => {
     test("should continue executing remaining hooks if one fails", async () => {
-      const hook1 = jest.fn().mockResolvedValue(undefined);
-      const hook2 = jest.fn().mockRejectedValue(new Error("Hook 2 failed"));
-      const hook3 = jest.fn().mockResolvedValue(undefined);
+      const hook1 = jest.fn().mockReturnValue(Promise.resolve()) as any;
+      const hook2 = jest.fn().mockReturnValue(Promise.reject(new Error("Hook 2 failed"))) as any;
+      const hook3 = jest.fn().mockReturnValue(Promise.resolve()) as any;
       taskLifecycleHooks.registerBeforeTaskStart(hook1, 10);
       taskLifecycleHooks.registerBeforeTaskStart(hook2, 5);
       taskLifecycleHooks.registerBeforeTaskStart(hook3, 1);
@@ -119,7 +119,7 @@ describe("TaskLifecycleHooks", () => {
 
   describe("Hook Management", () => {
     test("should unregister hook by ID", () => {
-      const hook = jest.fn().mockResolvedValue(undefined);
+      const hook = jest.fn().mockReturnValue(Promise.resolve()) as any;
       const hookId = taskLifecycleHooks.registerBeforeTaskStart(hook);
       expect(taskLifecycleHooks.getHooksByType("beforeTaskStart").length).toBe(
         1,
@@ -132,13 +132,13 @@ describe("TaskLifecycleHooks", () => {
 
     test("should get all registered hooks", () => {
       taskLifecycleHooks.registerBeforeTaskStart(
-        jest.fn().mockResolvedValue(undefined),
+        jest.fn().mockReturnValue(Promise.resolve()) as any,
       );
       taskLifecycleHooks.registerAfterTaskStart(
-        jest.fn().mockResolvedValue(undefined),
+        jest.fn().mockReturnValue(Promise.resolve()) as any,
       );
       taskLifecycleHooks.registerBeforeTaskComplete(
-        jest.fn().mockResolvedValue(undefined),
+        jest.fn().mockReturnValue(Promise.resolve()) as any,
       );
       const allHooks = taskLifecycleHooks.getAllHooks();
       expect(allHooks.length).toBe(3);
