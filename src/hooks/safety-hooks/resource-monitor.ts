@@ -3,6 +3,7 @@
 
 import { logger } from '../../util/logger';
 import { AfterTaskStartHook } from '../task-lifecycle';
+import { DockerManager } from '../../docker/manager';
 
 // Resource monitoring configuration
 interface MonitoringConfig {
@@ -18,6 +19,7 @@ interface MonitoringConfig {
     threshold: number; // percentage
     alert: boolean;
   };
+  intervalMs?: number; // monitoring interval
 }
 
 // Active monitoring intervals
@@ -39,6 +41,7 @@ export function createResourceLimitMonitorHook(
     memory: { threshold: 85, alert: true, ...config.memory },
     cpu: { threshold: 80, alert: true, ...config.cpu },
     pids: { threshold: 80, alert: true, ...config.pids },
+    intervalMs: 5000,
   };
 
   return async (taskId: string, agentId: string) => {
@@ -47,8 +50,13 @@ export function createResourceLimitMonitorHook(
 
       // Start monitoring interval
       const monitorInterval = setInterval(() => {
-        monitorResources(taskId, monitoringConfig);
-      }, 5000); // Check every 5 seconds
+        monitorResources(taskId, monitoringConfig).catch((err) => {
+          logger.error('Resource monitoring error', {
+            taskId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+      }, monitoringConfig.intervalMs);
 
       activeMonitors.set(taskId, monitorInterval);
 
@@ -78,13 +86,30 @@ export function stopResourceMonitoring(taskId: string): void {
   }
 }
 
-function monitorResources(taskId: string, config: Required<MonitoringConfig>): void {
-  try {
-    // Note: In a real implementation, we'd query Docker stats
-    // For now, this is a placeholder showing monitoring pattern
+/**
+ * Get all active monitors (for testing/debugging)
+ */
+export function getActiveMonitors(): string[] {
+  return Array.from(activeMonitors.keys());
+}
 
-    // const stats = await dockerManager.getContainerStats(containerId);
-    // checkThresholds(taskId, stats, config);
+async function monitorResources(taskId: string, config: Required<MonitoringConfig>): Promise<void> {
+  try {
+    const dockerManager = DockerManager.getInstance();
+    
+    // Find container for task
+    const containerName = `opencode_${taskId}`;
+    const containers = await dockerManager.listContainers(true);
+    const container = containers.find((c) => c.name === containerName);
+
+    if (!container) {
+      logger.debug('No container found for task, skipping monitoring', { taskId });
+      return;
+    }
+
+    // Get container stats
+    const stats = await dockerManager.getContainerStats(container.id);
+    checkThresholds(taskId, stats, config);
 
     logger.debug('Resource check completed', { taskId });
   } catch (error) {
@@ -96,7 +121,11 @@ function monitorResources(taskId: string, config: Required<MonitoringConfig>): v
   }
 }
 
-function checkThresholds(taskId: string, stats: any, config: Required<MonitoringConfig>): void {
+function checkThresholds(
+  taskId: string,
+  stats: { memoryPercent: number; cpuPercent: number; pids: number },
+  config: Required<MonitoringConfig>
+): void {
   const alerts: string[] = [];
 
   // Check memory threshold

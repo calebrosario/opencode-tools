@@ -11,6 +11,7 @@ import * as fs from "fs";
 import { logger } from "../util/logger";
 import { DatabaseManager } from "../persistence/database";
 import { dockerHelper } from "../util/docker-helper";
+import { resourceMonitor } from "../util/resource-monitor";
 import { sql } from "drizzle-orm";
 
 export type HealthStatus = "healthy" | "unhealthy" | "warning";
@@ -328,6 +329,66 @@ class HealthChecker {
       warningThreshold: 85,
       criticalThreshold: 95,
     });
+
+    this.registerCheck("resources", () => this.checkResources(), {
+      enabled: true,
+      timeoutMs: 5000,
+      warningThreshold: 80,
+      criticalThreshold: 90,
+    });
+  }
+
+  /**
+   * Check container resources via ResourceMonitor
+   */
+  private async checkResources(): Promise<HealthCheckResult> {
+    const startTime = Date.now();
+
+    try {
+      const systemUsage = await resourceMonitor.getSystemResourceUsage();
+      const threshold = this.config.get("resources")?.warningThreshold || 80;
+      const critical = this.config.get("resources")?.criticalThreshold || 90;
+
+      const maxPercentage = Math.max(
+        systemUsage.memory.percentage,
+        systemUsage.pids.percentage,
+      );
+
+      let status: HealthStatus = "healthy";
+      let message = `Resources: ${systemUsage.memory.percentage.toFixed(1)}% mem, ${systemUsage.pids.percentage.toFixed(1)}% pids`;
+
+      if (maxPercentage >= critical) {
+        status = "unhealthy";
+        message = `Critical resource usage: ${maxPercentage.toFixed(1)}%`;
+      } else if (maxPercentage >= threshold) {
+        status = "warning";
+        message = `High resource usage: ${maxPercentage.toFixed(1)}%`;
+      }
+
+      return {
+        name: "resources",
+        status,
+        message,
+        timestamp: new Date().toISOString(),
+        durationMs: Date.now() - startTime,
+        details: {
+          memory: systemUsage.memory,
+          pids: systemUsage.pids,
+          cpu: systemUsage.cpu,
+          containersTracked: resourceMonitor.getContainerCount(),
+        },
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        name: "resources",
+        status: "warning",
+        message: `Resource check failed: ${errorMessage}`,
+        timestamp: new Date().toISOString(),
+        durationMs: Date.now() - startTime,
+      };
+    }
   }
 
   /**

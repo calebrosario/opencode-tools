@@ -1,8 +1,9 @@
 // Isolation Checker Hook - Phase 2: MVP Core
 // Week 12, Task 12.12: Isolation Checker Hook
 
-import { logger } from '../../util/logger';
-import { AfterTaskStartHook } from '../task-lifecycle';
+import { logger } from "../../util/logger";
+import { AfterTaskStartHook } from "../task-lifecycle";
+import { networkIsolator } from "../../util/network-isolator";
 
 /**
  * Verify container isolation settings
@@ -17,37 +18,33 @@ import { AfterTaskStartHook } from '../task-lifecycle';
 export function createIsolationCheckerHook(): AfterTaskStartHook {
   return async (taskId: string, agentId: string) => {
     try {
-      logger.info('Verifying container isolation', { taskId, agentId });
+      logger.info("Verifying container isolation", { taskId, agentId });
 
-      // Note: In a real implementation, we'd inspect the actual container
-      // For now, this is a placeholder showing validation pattern
+      const isolator = networkIsolator();
+      const networkInfo = await isolator.getTaskNetwork(taskId);
 
-      // const containerId = getContainerIdForTask(taskId);
-      // const container = await dockerManager.inspectContainer(containerId);
+      if (networkInfo) {
+        const isolationResult = await isolator.verifyIsolation(networkInfo.Id);
 
-      // 1. Verify network isolation
-      // verifyNetworkIsolation(container);
+        if (!isolationResult.isIsolated) {
+          logger.warn("Network isolation issues detected", {
+            taskId,
+            issues: isolationResult.issues,
+          });
+        }
 
-      // 2. Verify filesystem isolation
-      // verifyFilesystemIsolation(container);
-
-      // 3. Check for privileged mode
-      // if (container.HostConfig.Privileged) {
-      //   throw new Error('Privileged mode not allowed');
-      // }
-
-      // 4. Validate user namespaces
-      // if (!container.HostConfig.UsernsMode) {
-      //   throw new Error('User namespaces required');
-      // }
-
-      // 5. Verify security options
-      // verifySecurityOptions(container);
-
-      logger.info('Isolation verification passed', { taskId, agentId });
+        logger.info("Isolation verification passed", {
+          taskId,
+          agentId,
+          isIsolated: isolationResult.isIsolated,
+        });
+      } else {
+        logger.debug("No custom network found for task", { taskId });
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Isolation verification failed', {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger.error("Isolation verification failed", {
         taskId,
         agentId,
         error: errorMessage,
@@ -64,7 +61,7 @@ function verifyNetworkIsolation(container: any): void {
   // Verify custom bridge network with internal: true
   // Internal: true blocks external access from containers
 
-  logger.debug('Network isolation verified', { networkMode: networkSettings });
+  logger.debug("Network isolation verified", { networkMode: networkSettings });
 }
 
 function verifyFilesystemIsolation(container: any): void {
@@ -74,7 +71,7 @@ function verifyFilesystemIsolation(container: any): void {
   // Check for volume mounts (should be minimal and explicit)
   const binds = container.HostConfig.Binds || [];
 
-  logger.debug('Filesystem isolation verified', {
+  logger.debug("Filesystem isolation verified", {
     readonlyRootfs,
     bindMounts: binds.length,
   });
@@ -86,7 +83,7 @@ function verifySecurityOptions(container: any): void {
   const dropCapabilities = container.HostConfig.CapDrop || [];
 
   // Minimal capabilities only
-  logger.debug('Security options verified', {
+  logger.debug("Security options verified", {
     securityOpts: securityOpts.length,
     capabilities: capabilities.length,
     dropCapabilities: dropCapabilities.length,
