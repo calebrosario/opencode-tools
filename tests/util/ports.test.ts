@@ -62,7 +62,7 @@ describe("getAvailablePorts", () => {
   test("returns ports in ascending order", async () => {
     const ports = await getAvailablePorts(4, 8200);
     for (let i = 1; i < ports.length; i++) {
-      expect(ports[i]).toBeGreaterThan(ports[i - 1]);
+      expect(ports[i]!).toBeGreaterThan(ports[i - 1]!);
     }
   });
 

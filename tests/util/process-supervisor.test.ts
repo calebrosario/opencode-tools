@@ -4,6 +4,7 @@ describe('ProcessSupervisor', () => {
   let supervisor: ProcessSupervisor;
 
   beforeEach(() => {
+    ProcessSupervisor.resetInstance();
     supervisor = ProcessSupervisor.getInstance();
   });
 
@@ -19,7 +20,7 @@ describe('ProcessSupervisor', () => {
     });
 
     it('should handle emergency stop', async () => {
-      await expect(supervisor.emergencyStopAll()).resolves.not.toThrow();
+      await expect(supervisor.emergencyStopAll()).resolves.toBeUndefined();
     });
   });
 

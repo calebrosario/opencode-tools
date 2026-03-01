@@ -17,8 +17,28 @@
 
 import { jest } from "@jest/globals";
 
-// Mock Dockerode constructor
-jest.mock("dockerode");
+// Mock Dockerode constructor - factory function that returns mocked instances
+const MockDockerode = jest.fn(() => ({
+  createNetwork: jest.fn(),
+  getNetwork: jest.fn(),
+  listNetworks: jest.fn(),
+  removeNetwork: jest.fn(),
+  createVolume: jest.fn(),
+  getVolume: jest.fn(),
+  listVolumes: jest.fn(),
+  removeVolume: jest.fn(),
+  createContainer: jest.fn(),
+  getContainer: jest.fn(),
+  listContainers: jest.fn(),
+  info: jest.fn(),
+}));
+
+// Handle both ESM default and CommonJS exports
+jest.mock("dockerode", () => ({
+  __esModule: true,
+  default: MockDockerode,
+  ...MockDockerode,
+}));
 
 // Type-safe mock interface for tests
 export interface MockedDockerode {

@@ -13,6 +13,7 @@ describe("CheckpointOptimizer", () => {
   const testBasePath = join(process.cwd(), "data", "tasks", testTaskId);
 
   beforeEach(async () => {
+    CheckpointOptimizer.resetInstance();
     try {
       await fs.mkdir(testBasePath, { recursive: true });
       await fs.mkdir(join(testBasePath, "checkpoints"), { recursive: true });
@@ -27,7 +28,7 @@ describe("CheckpointOptimizer", () => {
     } catch {
       // Directory might not exist
     }
-    mock.restore();
+    CheckpointOptimizer.resetInstance();
   });
 
   describe("getInstance", () => {
