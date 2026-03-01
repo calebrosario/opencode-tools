@@ -59,6 +59,12 @@ export class ProcessSupervisor {
   }
 
   /**
+   * Reset singleton instance (for testing)
+   */
+  public static resetInstance(): void {
+    ProcessSupervisor.instance = undefined as any;
+  }
+  /**
    * Validate command is not known invalid
    * Note: Validation patterns are test-specific. Production should validate
    * actual executable existence using 'which' or 'where' commands.

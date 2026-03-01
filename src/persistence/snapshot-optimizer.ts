@@ -85,6 +85,12 @@ export class SnapshotOptimizer {
     return SnapshotOptimizer.instance;
   }
 
+  /**
+   * Reset singleton instance (for testing)
+   */
+  public static resetInstance(): void {
+    SnapshotOptimizer.instance = undefined as any;
+  }
   public async createSelectiveSnapshot(
     taskId: string,
     options: SnapshotOptions,

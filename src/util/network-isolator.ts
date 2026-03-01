@@ -304,12 +304,36 @@ export class NetworkIsolator {
     try {
       logger.info("Isolating network", { networkId, taskId });
 
-      // In a real implementation, this would set up iptables rules
-      // For now, we just verify network exists
       const network = this.docker.getNetwork(networkId);
-      await network.inspect();
+      const networkInfo = await network.inspect();
 
-      logger.info("Network isolated successfully", { networkId, taskId });
+      const bridgeName = this.extractBridgeName(networkInfo);
+      if (!bridgeName) {
+        logger.warn("Could not extract bridge name, skipping iptables", {
+          networkId,
+        });
+        return;
+      }
+
+      const chainName = `OPENCODE_${taskId.slice(0, 16)}`;
+
+      await this.execIptables(["-N", chainName]);
+      await this.execIptables([
+        "-A",
+        "FORWARD",
+        "-i",
+        bridgeName,
+        "-j",
+        chainName,
+      ]);
+      await this.execIptables(["-A", chainName, "-j", "DROP"]);
+
+      logger.info("Network isolated with iptables", {
+        networkId,
+        taskId,
+        chainName,
+        bridgeName,
+      });
     } catch (error: unknown) {
       logger.error("Failed to isolate network", {
         networkId,
@@ -328,27 +352,126 @@ export class NetworkIsolator {
    * Remove network isolation rules
    * @param networkId - Network ID to remove isolation from
    */
-  public async removeNetworkIsolation(networkId: string): Promise<void> {
+  public async removeNetworkIsolation(
+    networkId: string,
+    taskId?: string,
+  ): Promise<void> {
     try {
-      logger.info("Removing network isolation", { networkId });
+      logger.info("Removing network isolation", { networkId, taskId });
 
-      // In a real implementation, this would remove iptables rules
-      // For now, we just verify network exists
-      const network = this.docker.getNetwork(networkId);
-      await network.inspect();
+      if (taskId) {
+        const chainName = `OPENCODE_${taskId.slice(0, 16)}`;
+        await this.execIptables(["-F", chainName]).catch(() => {});
+        await this.execIptables(["-X", chainName]).catch(() => {});
+      }
 
-      logger.info("Network isolation removed successfully", { networkId });
+      logger.info("Network isolation removed", { networkId });
     } catch (error: unknown) {
       logger.error("Failed to remove network isolation", {
         networkId,
         error: error instanceof Error ? error.message : String(error),
       });
-      throw new OpenCodeError(
-        "NETWORK_ISOLATION_REMOVAL_FAILED",
-        `Failed to remove isolation from network ${networkId}`,
-        { networkId },
-      );
     }
+  }
+
+  private extractBridgeName(networkInfo: any): string | null {
+    if (networkInfo?.Options?.["com.docker.network.bridge.name"]) {
+      return networkInfo.Options["com.docker.network.bridge.name"];
+    }
+    if (networkInfo?.Id) {
+      return `br-${networkInfo.Id.slice(0, 12)}`;
+    }
+    return null;
+  }
+
+  private async execIptables(args: string[]): Promise<void> {
+    const { exec } = await import("child_process");
+    const command = `iptables ${args.join(" ")}`;
+
+    return new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        if (error && !stderr.includes("No chain/target/match by that name")) {
+          logger.debug("iptables command", {
+            command,
+            error: stderr || error.message,
+          });
+        }
+        resolve();
+      });
+    });
+  }
+
+  private activePacketCaptures = new Map<string, NodeJS.Timeout>();
+
+  public async startPacketCapture(
+    networkId: string,
+    taskId: string,
+    outputPath: string,
+    maxDurationMs?: number,
+  ): Promise<void> {
+    try {
+      const network = this.docker.getNetwork(networkId);
+      const networkInfo = await network.inspect();
+      const bridgeName = this.extractBridgeName(networkInfo);
+
+      if (!bridgeName) {
+        throw new Error("Could not determine bridge interface");
+      }
+
+      logger.info("Starting packet capture", {
+        networkId,
+        taskId,
+        bridgeName,
+        outputPath,
+      });
+
+      const captureKey = `${taskId}-${networkId}`;
+      if (this.activePacketCaptures.has(captureKey)) {
+        logger.warn("Packet capture already running", { taskId, networkId });
+        return;
+      }
+
+      const { exec } = await import("child_process");
+      const cmd = `tcpdump -i ${bridgeName} -w ${outputPath} -c 1000 2>&1 &`;
+
+      exec(cmd, (error) => {
+        if (error) {
+          logger.error("Failed to start packet capture", {
+            error: error.message,
+          });
+        }
+      });
+
+      if (maxDurationMs) {
+        const timeout = setTimeout(() => {
+          this.stopPacketCapture(networkId, taskId);
+        }, maxDurationMs);
+        this.activePacketCaptures.set(captureKey, timeout);
+      }
+
+      logger.info("Packet capture started", { taskId, outputPath });
+    } catch (error: unknown) {
+      logger.error("Failed to start packet capture", {
+        networkId,
+        taskId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  public stopPacketCapture(networkId: string, taskId: string): void {
+    const captureKey = `${taskId}-${networkId}`;
+    const timeout = this.activePacketCaptures.get(captureKey);
+
+    if (timeout) {
+      clearTimeout(timeout);
+      this.activePacketCaptures.delete(captureKey);
+    }
+
+    const { exec } = require("child_process");
+    exec(`pkill -f "tcpdump.*${taskId}"`, () => {});
+
+    logger.info("Packet capture stopped", { networkId, taskId });
   }
 
   /**

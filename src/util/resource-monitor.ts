@@ -3,6 +3,9 @@ import {
   CONTAINER_MEMORY_MB,
   CONTAINER_CPU_SHARES,
   CONTAINER_PIDS_LIMIT,
+  WEBHOOK_URL,
+  WEBHOOK_TIMEOUT_MS,
+  ALERT_WEBHOOK_ENABLED,
 } from "../config";
 import { OpenCodeError } from "../types";
 
@@ -314,6 +317,14 @@ export class ResourceMonitor {
   }
 
   /**
+   * Get number of tracked containers
+   * @returns Container count
+   */
+  public getContainerCount(): number {
+    return this.resourceUsage.size;
+  }
+
+  /**
    * Force cleanup of resource monitoring data
    */
   public emergencyCleanup(): number {
@@ -322,6 +333,55 @@ export class ResourceMonitor {
     this.alertsTriggered.clear();
     logger.warn("Emergency resource monitoring cleanup performed", { cleaned });
     return cleaned;
+  }
+
+  /**
+   * Send webhook notification for alerts
+   */
+  private async sendWebhookNotification(
+    alertType: string,
+    containerId: string,
+    usage: ResourceUsage,
+  ): Promise<void> {
+    if (!ALERT_WEBHOOK_ENABLED || !WEBHOOK_URL) {
+      return;
+    }
+
+    const payload = {
+      timestamp: new Date().toISOString(),
+      alert: alertType,
+      containerId,
+      usage: {
+        memory: usage.memory.percentage.toFixed(1) + "%",
+        pids: usage.pids.percentage.toFixed(1) + "%",
+      },
+      source: "opencode-tools",
+    };
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
+
+      const response = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        logger.warn("Webhook notification failed", {
+          status: response.status,
+          statusText: response.statusText,
+        });
+      }
+    } catch (error) {
+      logger.error("Failed to send webhook notification", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /**
@@ -339,6 +399,7 @@ export class ResourceMonitor {
         percentage: usage.memory.percentage,
       });
       this.alertsTriggered.add(alertKey);
+      this.sendWebhookNotification("memory", containerId, usage);
     } else if (usage.memory.percentage < 80) {
       this.alertsTriggered.delete(alertKey);
     }
@@ -352,6 +413,7 @@ export class ResourceMonitor {
         percentage: usage.pids.percentage,
       });
       this.alertsTriggered.add(pidAlertKey);
+      this.sendWebhookNotification("pids", containerId, usage);
     } else if (usage.pids.percentage < 70) {
       this.alertsTriggered.delete(pidAlertKey);
     }
