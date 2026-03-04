@@ -17,8 +17,28 @@
 
 import { jest } from "@jest/globals";
 
-// Mock Dockerode constructor
-jest.mock("dockerode");
+// Mock Dockerode constructor - factory function that returns mocked instances
+const MockDockerode = jest.fn(() => ({
+  createNetwork: jest.fn(),
+  getNetwork: jest.fn(),
+  listNetworks: jest.fn(),
+  removeNetwork: jest.fn(),
+  createVolume: jest.fn(),
+  getVolume: jest.fn(),
+  listVolumes: jest.fn(),
+  removeVolume: jest.fn(),
+  createContainer: jest.fn(),
+  getContainer: jest.fn(),
+  listContainers: jest.fn(),
+  info: jest.fn(),
+}));
+
+// Handle both ESM default and CommonJS exports
+jest.mock("dockerode", () => ({
+  __esModule: true,
+  default: MockDockerode,
+  ...MockDockerode,
+}));
 
 // Type-safe mock interface for tests
 export interface MockedDockerode {
@@ -40,68 +60,83 @@ export interface MockedDockerode {
 export function createMockDockerode(): MockedDockerode {
   const mockStream = createMockStream();
 
-  return {
-    createNetwork: jest.fn().mockResolvedValue({
-      id: "test-network-id",
-      name: "test-network",
-    }),
-    getNetwork: jest.fn().mockReturnValue({
-      connect: jest.fn().mockResolvedValue(undefined),
-      disconnect: jest.fn().mockResolvedValue(undefined),
-      remove: jest.fn().mockResolvedValue(undefined),
-      inspect: jest.fn().mockResolvedValue({
-        Id: "test-network-id",
-        Name: "test-network",
-        Driver: "bridge",
-        Scope: "local",
-        Internal: true,
-        Labels: {
-          "opencode.taskId": "test-task",
-          "opencode.managed": "true",
-        },
-        Created: Date.now() / 1000,
-        Containers: {},
-      }),
-    }),
-    listNetworks: jest.fn().mockResolvedValue([]),
-    removeNetwork: jest.fn().mockResolvedValue(undefined),
-    createVolume: jest.fn().mockResolvedValue({
+  const mocked: MockedDockerode = {
+    createNetwork: jest.fn() as any,
+    getNetwork: jest.fn() as any,
+    listNetworks: jest.fn() as any,
+    removeNetwork: jest.fn() as any,
+    createVolume: jest.fn() as any,
+    getVolume: jest.fn() as any,
+    listVolumes: jest.fn() as any,
+    removeVolume: jest.fn() as any,
+    createContainer: jest.fn() as any,
+    getContainer: jest.fn() as any,
+    listContainers: jest.fn() as any,
+    info: jest.fn() as any,
+  };
+
+  mocked.createNetwork.mockResolvedValue({
+    id: "test-network-id",
+    name: "test-network",
+  });
+  mocked.getNetwork.mockReturnValue({
+    connect: (jest.fn() as any).mockResolvedValue(undefined as any),
+    disconnect: (jest.fn() as any).mockResolvedValue(undefined as any),
+    remove: (jest.fn() as any).mockResolvedValue(undefined as any),
+    inspect: (jest.fn() as any).mockResolvedValue({
+      Id: "test-network-id",
+      Name: "test-network",
+      Driver: "bridge",
+      Scope: "local",
+      Internal: true,
+      Labels: {
+        "opencode.taskId": "test-task",
+        "opencode.managed": "true",
+      },
+      Created: Date.now() / 1000,
+      Containers: {},
+    } as any),
+  } as any);
+  mocked.listNetworks.mockResolvedValue([]);
+  mocked.removeNetwork.mockResolvedValue(undefined as any);
+  mocked.createVolume.mockResolvedValue({
+    Name: "test-volume",
+    Driver: "local",
+  } as any);
+  mocked.getVolume.mockReturnValue({
+    inspect: (jest.fn() as any).mockResolvedValue({
       Name: "test-volume",
       Driver: "local",
-    }),
-    getVolume: jest.fn().mockReturnValue({
-      inspect: jest.fn().mockResolvedValue({
-        Name: "test-volume",
-        Driver: "local",
-      }),
-      remove: jest.fn().mockResolvedValue(undefined),
-    }),
-    listVolumes: jest.fn().mockResolvedValue([]),
-    removeVolume: jest.fn().mockResolvedValue(undefined),
-    createContainer: jest.fn().mockResolvedValue({
-      id: "test-container-id",
-      start: jest.fn().mockResolvedValue(undefined),
-      stop: jest.fn().mockResolvedValue(undefined),
-      remove: jest.fn().mockResolvedValue(undefined),
-      logs: jest.fn().mockReturnValue(mockStream),
-    }),
-    getContainer: jest.fn().mockReturnValue({
-      inspect: jest.fn().mockResolvedValue({
-        Id: "test-container-id",
-        State: { Running: false },
-      }),
-      start: jest.fn().mockResolvedValue(undefined),
-      stop: jest.fn().mockResolvedValue(undefined),
-      restart: jest.fn().mockResolvedValue(undefined),
-      remove: jest.fn().mockResolvedValue(undefined),
-      logs: jest.fn().mockReturnValue(mockStream),
-    }),
-    listContainers: jest.fn().mockResolvedValue([]),
-    info: jest.fn().mockResolvedValue({
-      ServerVersion: "29.1.5",
-      OperatingSystem: "Alpine Linux",
-    }),
-  };
+    } as any),
+    remove: (jest.fn() as any).mockResolvedValue(undefined as any),
+  } as any);
+  mocked.listVolumes.mockResolvedValue([]);
+  mocked.removeVolume.mockResolvedValue(undefined as any);
+  mocked.createContainer.mockResolvedValue({
+    id: "test-container-id",
+    start: (jest.fn() as any).mockResolvedValue(undefined as any),
+    stop: (jest.fn() as any).mockResolvedValue(undefined as any),
+    remove: (jest.fn() as any).mockResolvedValue(undefined as any),
+    logs: (jest.fn() as any).mockReturnValue(mockStream as any),
+  } as any);
+  mocked.getContainer.mockReturnValue({
+    inspect: (jest.fn() as any).mockResolvedValue({
+      Id: "test-container-id",
+      State: { Running: false },
+    } as any),
+    start: (jest.fn() as any).mockResolvedValue(undefined as any),
+    stop: (jest.fn() as any).mockResolvedValue(undefined as any),
+    restart: (jest.fn() as any).mockResolvedValue(undefined as any),
+    remove: (jest.fn() as any).mockResolvedValue(undefined as any),
+    logs: (jest.fn() as any).mockReturnValue(mockStream as any),
+  } as any);
+  mocked.listContainers.mockResolvedValue([]);
+  mocked.info.mockResolvedValue({
+    ServerVersion: "29.1.5",
+    OperatingSystem: "Alpine Linux",
+  } as any);
+
+  return mocked;
 }
 
 // Helper to create mock PassThrough streams

@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import { join } from "path";
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
+import { jest } from "@jest/globals";
 import {
   CheckpointOptimizer,
   checkpointOptimizer,
@@ -12,6 +13,7 @@ describe("CheckpointOptimizer", () => {
   const testBasePath = join(process.cwd(), "data", "tasks", testTaskId);
 
   beforeEach(async () => {
+    CheckpointOptimizer.resetInstance();
     try {
       await fs.mkdir(testBasePath, { recursive: true });
       await fs.mkdir(join(testBasePath, "checkpoints"), { recursive: true });
@@ -26,7 +28,7 @@ describe("CheckpointOptimizer", () => {
     } catch {
       // Directory might not exist
     }
-    mock.restore();
+    CheckpointOptimizer.resetInstance();
   });
 
   describe("getInstance", () => {

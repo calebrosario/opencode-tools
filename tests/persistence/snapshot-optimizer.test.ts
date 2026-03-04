@@ -16,12 +16,14 @@ describe("SnapshotOptimizer", () => {
   let optimizer: SnapshotOptimizer;
 
   beforeEach(async () => {
+    SnapshotOptimizer.resetInstance();
     optimizer = SnapshotOptimizer.getInstance();
     await fs.mkdir(testDataDir, { recursive: true });
   });
 
   afterEach(async () => {
     await fs.rm(testDataDir, { recursive: true, force: true }).catch(() => {});
+    SnapshotOptimizer.resetInstance();
   });
 
   describe("createSelectiveSnapshot", () => {

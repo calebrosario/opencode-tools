@@ -1,16 +1,12 @@
 // Safety Hooks Tests - Phase 2: MVP Core
 // Week 12, Task 12.13: Hook Tests
 
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach } from "@jest/globals";
 import { createContainerSafetyEnforcerHook } from "../../src/hooks/safety-hooks/container-enforcer";
 import { createResourceLimitMonitorHook } from "../../src/hooks/safety-hooks/resource-monitor";
 import { createIsolationCheckerHook } from "../../src/hooks/safety-hooks/isolation-checker";
 
 describe("Safety Hooks", () => {
-  beforeEach(() => {
-    mock.restore();
-  });
-
   describe("Container Enforcer Hook", () => {
     test("should create hook function", () => {
       const hook = createContainerSafetyEnforcerHook();

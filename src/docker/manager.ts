@@ -18,6 +18,8 @@ import type {
   LogStream,
   PruneResult,
   PortConfig,
+  ExecResult,
+  ImagePullResult,
 } from "./container-config";
 import Docker from "dockerode";
 
@@ -539,6 +541,7 @@ export class DockerManager {
       tail?: number;
       since?: number;
       timestamps?: boolean;
+      follow?: boolean;
     } = {},
   ): Promise<LogStream> {
     try {
@@ -552,11 +555,16 @@ export class DockerManager {
         tail: options.tail || 100,
         since: options.since,
         timestamps: options.timestamps || false,
-        follow: false,
+        follow: options.follow || false,
       } as Docker.ContainerLogsOptions;
 
       const logs = await (container.logs as any)(logOptions);
 
+      if (options.follow) {
+        return logs as any as LogStream;
+      }
+
+      // Parse demuxed logs (stdout/stderr separation)
       const logString = logs.toString();
 
       // Parse demuxed logs (stdout/stderr separation)
@@ -697,6 +705,309 @@ export class DockerManager {
   }
 
   // =========================================================================
+  // Exec and Image Methods
+  // =========================================================================
+
+  /**
+   * Execute a command inside a running container
+   * @param containerId Container ID
+   * @param command Command to execute
+   * @param options Execution options
+   * @returns Execution result with exit code and output
+   */
+  public async execInContainer(
+    containerId: string,
+    command: string | string[],
+    options: {
+      timeout?: number;
+      user?: string;
+      workingDir?: string;
+      env?: Record<string, string>;
+    } = {},
+  ): Promise<ExecResult> {
+    const startTime = Date.now();
+    const timeoutMs = options.timeout ?? 60000; // 60s default
+
+    try {
+      await this.ensureInitialized();
+
+      const container = this.docker.getContainer(containerId);
+
+      // Verify container is running
+      const info = await container.inspect();
+      if (!info.State?.Running) {
+        throw new OpenCodeError(
+          "CONTAINER_NOT_RUNNING",
+          `Container ${containerId} is not running`,
+          { containerId, state: info.State?.Status },
+        );
+      }
+
+      logger.info("Executing command in container", {
+        containerId,
+        command: Array.isArray(command) ? command.join(" ") : command,
+        timeout: timeoutMs,
+      });
+
+      // Build exec options
+      const execOptions: Dockerode.ExecCreateOptions = {
+        Cmd: Array.isArray(command) ? command : ["/bin/sh", "-c", command],
+        AttachStdout: true,
+        AttachStderr: true,
+        User: options.user,
+        WorkingDir: options.workingDir,
+        Env: options.env
+          ? Object.entries(options.env).map(([k, v]) => `${k}=${v}`)
+          : undefined,
+      };
+
+      // Create exec instance
+      const exec = await container.exec(execOptions);
+
+      // Start exec and capture output with timeout
+      const execResult = await this.execWithTimeout(
+        exec,
+        containerId,
+        timeoutMs,
+      );
+
+      const duration = Date.now() - startTime;
+
+      logger.info("✅ Command executed in container", {
+        containerId,
+        exitCode: execResult.exitCode,
+        duration,
+      });
+
+      return {
+        exitCode: execResult.exitCode,
+        stdout: execResult.stdout,
+        stderr: execResult.stderr,
+        duration,
+      };
+    } catch (error: unknown) {
+      const duration = Date.now() - startTime;
+      logger.error("Failed to execute command in container", {
+        containerId,
+        error: error instanceof Error ? error.message : String(error),
+        duration,
+      });
+
+      // Re-throw OpenCodeError as-is to preserve error codes
+      if (error instanceof OpenCodeError) {
+        throw error;
+      }
+
+      // Handle timeout errors
+      if (
+        error instanceof Error &&
+        (error.message.includes("timeout") || error.message.includes("timed out"))
+      ) {
+        throw new OpenCodeError(
+          "EXEC_TIMEOUT",
+          `Command execution timed out after ${timeoutMs}ms`,
+          { containerId, command, timeout: timeoutMs },
+        );
+      }
+
+      throw new OpenCodeError(
+        "EXEC_FAILED",
+        `Failed to execute command in container: ${containerId}`,
+        { containerId, command, error },
+      );
+    }
+  }
+
+  /**
+   * Ensure an image exists locally, pulling if necessary
+   * @param image Image name (e.g., "node:20", "alpine:latest")
+   * @param options Pull options
+   * @returns Image pull result
+   */
+  public async ensureImage(
+    image: string,
+    options: {
+      pullIfMissing?: boolean;
+      timeout?: number;
+    } = {},
+  ): Promise<ImagePullResult> {
+    const pullIfMissing = options.pullIfMissing ?? true;
+    const timeoutMs = options.timeout ?? 300000; // 5 min default for pull
+
+    try {
+      await this.ensureInitialized();
+
+      logger.info("Checking if image exists locally", { image });
+
+      // Check if image exists locally
+      try {
+        const imageInfo = await this.docker.getImage(image).inspect();
+        logger.info("✅ Image already exists locally", {
+          image,
+          digest: imageInfo.Id,
+          size: imageInfo.Size,
+        });
+
+        return {
+          image,
+          status: "exists",
+          digest: imageInfo.Id,
+          size: imageInfo.Size,
+        };
+      } catch {
+        // Image doesn't exist locally
+        if (!pullIfMissing) {
+          throw new OpenCodeError(
+            "IMAGE_NOT_FOUND",
+            `Image ${image} not found locally`,
+            { image },
+          );
+        }
+      }
+
+      logger.info("Pulling image", { image, timeout: timeoutMs });
+
+      // Pull the image with timeout
+      const pullPromise = new Promise<ImagePullResult>((resolve, reject) => {
+        this.docker.pull(image, (err: Error | null, stream: NodeJS.ReadableStream) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          // Consume the stream to complete the pull
+          let digest: string | undefined;
+          stream.on('data', (chunk: Buffer) => {
+            // Parse pull progress to find digest
+            const text = chunk.toString();
+            const digestMatch = text.match(/"digest":"([^"]+)"/);
+            if (digestMatch) {
+              digest = digestMatch[1];
+            }
+          });
+
+          stream.on('end', () => {
+            logger.info("✅ Image pulled successfully", { image, digest });
+            resolve({
+              image,
+              status: "pulled",
+              digest,
+            });
+          });
+
+          stream.on('error', reject);
+        });
+      });
+
+      // Apply timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Image pull timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      });
+
+      return await Promise.race([pullPromise, timeoutPromise]);
+    } catch (error: unknown) {
+      logger.error("Failed to ensure image", {
+        image,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Re-throw OpenCodeError as-is to preserve error codes
+      if (error instanceof OpenCodeError) {
+        throw error;
+      }
+
+      throw new OpenCodeError(
+        "IMAGE_PULL_FAILED",
+        `Failed to ensure image ${image}`,
+        { image, error },
+      );
+    }
+  }
+
+  /**
+   * Execute with timeout wrapper
+   * @private
+   */
+  private async execWithTimeout(
+    exec: Docker.Exec,
+    containerId: string,
+    timeoutMs: number,
+  ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Command execution timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      exec.start({ Detach: false }, (err, stream) => {
+        if (err) {
+          clearTimeout(timeoutId);
+          reject(err);
+          return;
+        }
+
+        if (!stream) {
+          clearTimeout(timeoutId);
+          reject(new Error("Failed to start exec stream"));
+          return;
+        }
+
+
+        // Demux stream to separate stdout and stderr
+        // Docker multiplexes stdout/stderr with 8-byte headers
+        const stdoutChunks: Buffer[] = [];
+        const stderrChunks: Buffer[] = [];
+        
+        // Create simple writable-like objects for demuxStream
+        const stdoutWriter = {
+          write: (data: Buffer) => {
+            stdoutChunks.push(data);
+            return true;
+          },
+        };
+        const stderrWriter = {
+          write: (data: Buffer) => {
+            stderrChunks.push(data);
+            return true;
+          },
+        };
+        
+        // demuxStream expects WritableStream but simple objects with write() work at runtime
+        this.docker.modem.demuxStream(
+          stream,
+          stdoutWriter as any,
+          stderrWriter as any,
+        );
+
+        stream.on("end", async () => {
+          clearTimeout(timeoutId);
+          try {
+            // Inspect exec to get exit code
+            const execInfo = await exec.inspect();
+            const exitCode = execInfo.ExitCode ?? 0;
+
+            resolve({
+              exitCode,
+              stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+              stderr: Buffer.concat(stderrChunks).toString("utf8"),
+            });
+          } catch (inspectError) {
+            reject(inspectError);
+          }
+        });
+
+        stream.on("error", (streamErr) => {
+          clearTimeout(timeoutId);
+          reject(streamErr);
+        });
+      });
+    });
+  }
+
+  // =========================================================================
+  // Private Helper Methods
+  // =========================================================================
   // Private Helper Methods
   // =========================================================================
 
@@ -735,6 +1046,7 @@ export class DockerManager {
       labels,
       logOptions,
       autoRemove,
+      healthCheck,
     } = config;
 
     // Default resource limits from config
@@ -816,6 +1128,43 @@ export class DockerManager {
       hostConfig.CpuPeriod = resourceLimits.cpuPeriod;
       hostConfig.PidsLimit = resourceLimits.pidsLimit || defaultPidsLimit;
       hostConfig.BlkioWeight = resourceLimits.blkioWeight;
+    }
+
+    // Resource limit enforcement is applied via Docker HostConfig
+    // Runtime monitoring can be added via getContainerStats polling
+
+    // Apply health check configuration
+    if (healthCheck) {
+      const healthConfig: any = {};
+
+      if (healthCheck.test) {
+        if (Array.isArray(healthCheck.test)) {
+          healthConfig.Cmd = healthCheck.test;
+        } else {
+          healthConfig.Cmd = ["/bin/sh", "-c", healthCheck.test];
+        }
+      }
+
+      if (healthCheck.interval) {
+        healthConfig.Interval = healthCheck.interval;
+      }
+
+      if (healthCheck.timeout) {
+        healthConfig.Timeout = healthCheck.timeout;
+      }
+
+      if (healthCheck.retries) {
+        healthConfig.Retries = healthCheck.retries;
+      }
+
+      if (healthCheck.startPeriod) {
+        healthConfig.StartPeriod = healthCheck.startPeriod;
+      }
+
+      if (Object.keys(healthConfig).length > 0) {
+        const extendedHostConfig = hostConfig as any;
+        extendedHostConfig.Healthcheck = healthConfig;
+      }
     }
 
     // Apply security options

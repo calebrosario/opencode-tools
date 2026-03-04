@@ -151,3 +151,20 @@ export interface PruneResult {
 
 // Re-export ContainerInfo from types
 export type { ContainerInfo, ContainerStatus } from "../types";
+
+
+// Exec result from container command execution
+export interface ExecResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  duration: number; // milliseconds
+}
+
+// Image pull result
+export interface ImagePullResult {
+  image: string;
+  status: 'pulled' | 'exists' | 'failed';
+  digest?: string;
+  size?: number;
+}

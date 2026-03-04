@@ -14,13 +14,14 @@ describe("CheckpointScheduler", () => {
   let scheduler: CheckpointScheduler;
 
   beforeEach(() => {
+    CheckpointScheduler.resetInstance();
     scheduler = CheckpointScheduler.getInstance();
   });
 
   afterEach(() => {
     scheduler.stopAllMonitoring();
+    CheckpointScheduler.resetInstance();
   });
-
   describe("assessRisk", () => {
     it("should return LOW risk for simple operations", () => {
       const context: RiskContext = {

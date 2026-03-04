@@ -1,8 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import {
-  getAvailablePort,
-  getAvailablePorts,
-} from "./ports";
+import { describe, test, expect } from "@jest/globals";
+import { getAvailablePort, getAvailablePorts } from "./ports";
 import net from "net";
 
 describe("getAvailablePort", () => {
@@ -65,7 +62,7 @@ describe("getAvailablePorts", () => {
   test("returns ports in ascending order", async () => {
     const ports = await getAvailablePorts(4, 8200);
     for (let i = 1; i < ports.length; i++) {
-      expect(ports[i]).toBeGreaterThan(ports[i - 1]);
+      expect(ports[i]!).toBeGreaterThan(ports[i - 1]!);
     }
   });
 

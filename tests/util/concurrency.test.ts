@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "@jest/globals";
 import { OptimisticLock } from "../../src/util/optimistic-lock";
 import { LockManager } from "../../src/util/lock-manager";
 import { LockMode } from "../../src/types";
